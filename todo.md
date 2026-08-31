@@ -22,7 +22,7 @@
 
 ## GitHub publication
 
-- [ ] Optimize generated icon assets for repository size limits
-- [ ] Create a private GitHub repository named `zdos-microcosm-beta`
-- [ ] Push the prepared source, tests and local Android bundle to GitHub
-- [ ] Verify the remote repository contents and privacy setting
+- [x] Optimize generated icon assets for repository size limits
+- [x] Create a private GitHub repository named `zdos-microcosm-beta`
+- [x] Push the prepared source, tests and local Android bundle to GitHub
+- [x] Verify the remote repository contents and privacy setting
