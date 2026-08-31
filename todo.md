@@ -26,3 +26,12 @@
 - [x] Create a private GitHub repository named `zdos-microcosm-beta`
 - [x] Push the prepared source, tests and local Android bundle to GitHub
 - [x] Verify the remote repository contents and privacy setting
+
+## Profile and private node extension
+
+- [x] Inspect current connector and VPS-related configuration for a recognizable private ZDOS node
+- [x] Define and document the ZDOS Microcosm profile boundaries before attaching external infrastructure
+- [x] Add an explicit node status/profile surface to the app without exposing secrets
+- [x] Add a documented advanced “magic” layer with deterministic local diagnostics and traceable receipts
+- [ ] Attach the recognized private ZDOS node only after confirming its identity and supported access method
+- [ ] Test the extended profile and synchronize the changes to the private GitHub repository

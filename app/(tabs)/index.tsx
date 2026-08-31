@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import {
+  computeZtrace,
   previewZretro,
   runTerminalCommand,
   validateZlang,
@@ -19,8 +20,9 @@ import {
   type Receipt,
   type ReceiptStatus,
 } from "@/lib/zdos-demo";
+import { PRIVATE_ZDOS_NODE, nodeBindingState } from "@/lib/zdos-node";
 
-type Surface = "home" | "terminal" | "zlang" | "zretro" | "evidence" | "security";
+type Surface = "home" | "terminal" | "zlang" | "zretro" | "evidence" | "security" | "profile";
 
 type TerminalEntry = {
   id: string;
@@ -92,6 +94,14 @@ const MENU_CARDS: MenuCard[] = [
     description: "Capability visibili con profilo DEFAULT-DENY.",
     status: "DENIED",
     accent: COLORS.red,
+  },
+  {
+    id: "profile",
+    index: "06",
+    title: "ZDOS Profile",
+    description: "Identità, policy attiva e binding del nodo privato.",
+    status: "ROADMAP",
+    accent: COLORS.cyan,
   },
 ];
 
@@ -512,6 +522,65 @@ function SecuritySurface({ onBack }: { onBack: () => void }) {
   );
 }
 
+function ProfileSurface({ onBack, receiptCount }: { onBack: () => void; receiptCount: number }) {
+  const ztrace = computeZtrace("profile", receiptCount);
+  const node = PRIVATE_ZDOS_NODE;
+  const nodeIdentity = nodeBindingState(node);
+
+  return (
+    <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
+      <ScrollView contentContainerStyle={styles.surfaceContent}>
+        <SurfaceHeader title="ZDOS PROFILE" eyebrow="CONTROL PLANE · TRANSPARENT BY DESIGN" onBack={onBack} />
+        <View style={styles.profileHero}>
+          <Text style={styles.microLabel}>PROFILE ID</Text>
+          <Text style={styles.profileId}>zdos.microcosm.beta</Text>
+          <View style={styles.profileRule} />
+          <View style={styles.profilePair}>
+            <View style={styles.profilePairBlock}>
+              <Text style={styles.microLabel}>POSTURE</Text>
+              <Text style={[styles.profilePairValue, { color: COLORS.lime }]}>DEFAULT-DENY</Text>
+            </View>
+            <View style={styles.profilePairBlock}>
+              <Text style={styles.microLabel}>IDENTITY</Text>
+              <Text style={[styles.profilePairValue, { color: COLORS.violet }]}>guest</Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.nodeCard}>
+          <View style={styles.nodeCardTop}>
+            <View>
+              <Text style={styles.microLabel}>PRIVATE ZDOS NODE</Text>
+              <Text style={styles.nodeStatus}>{nodeIdentity} · UNLINKED</Text>
+            </View>
+            <StatusBadge status={nodeIdentity === "IDENTIFIED" ? "VERIFIED" : "ROADMAP"} />
+          </View>
+          <Text style={styles.nodeText}>Identity received from the VPS enrollment profile. The Microcosm binding remains off because no authenticated transport has been configured.</Text>
+          <View style={styles.nodeChecklist}>
+            <Text style={styles.nodeChecklistItem}>— node name: {node.nodeName}</Text>
+            <Text style={styles.nodeChecklistItem}>— node id: {node.nodeId}</Text>
+            <Text style={styles.nodeChecklistItem}>— transport: {node.transport}</Text>
+            <Text style={styles.nodeChecklistItem}>— remote execution: denied</Text>
+          </View>
+        </View>
+        <View style={styles.ztraceCard}>
+          <View style={styles.ztraceTopRow}>
+            <Text style={styles.microLabel}>ZTRACE / SESSION SIGNATURE</Text>
+            <Text style={styles.ztraceGlyph}>✦</Text>
+          </View>
+          <Text style={styles.ztraceValue}>{ztrace}</Text>
+          <Text style={styles.ztraceDescription}>Deterministic local fingerprint of profile, policy, surface and receipt count. Informative only; never a secret or credential.</Text>
+        </View>
+        <View style={styles.profileGrid}>
+          <View style={styles.profileGridItem}><Text style={styles.profileGridValue}>{String(receiptCount).padStart(2, "0")}</Text><Text style={styles.profileGridLabel}>RECEIPTS</Text></View>
+          <View style={styles.profileGridItem}><Text style={styles.profileGridValue}>06</Text><Text style={styles.profileGridLabel}>SURFACES</Text></View>
+          <View style={styles.profileGridItem}><Text style={styles.profileGridValue}>0</Text><Text style={styles.profileGridLabel}>NETWORK</Text></View>
+        </View>
+        <Text style={styles.disclaimer}>The profile never enables hidden privileges. A future node bridge must be explicit, authenticated, read-only by default and independently disableable.</Text>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
 export default function MicrocosmScreen() {
   const [surface, setSurface] = useState<Surface>("home");
   const [receipts, setReceipts] = useState<Receipt[]>(INITIAL_RECEIPTS);
@@ -528,6 +597,7 @@ export default function MicrocosmScreen() {
   if (surface === "zretro") return <ZretroSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "evidence") return <EvidenceSurface onBack={() => setSurface("home")} receipts={receipts} />;
   if (surface === "security") return <SecuritySurface onBack={() => setSurface("home")} />;
+  if (surface === "profile") return <ProfileSurface onBack={() => setSurface("home")} receiptCount={receipts.length} />;
 
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
@@ -684,6 +754,27 @@ const styles = StyleSheet.create({
   capabilityKey: { color: COLORS.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1.2 },
   capabilityValue: { fontSize: 15, fontWeight: "800", marginTop: 5 },
   capabilityDetail: { color: COLORS.muted, fontSize: 11, lineHeight: 17, marginTop: 5 },
+  profileHero: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.cyan, padding: 16, marginBottom: 14 },
+  profileId: { color: COLORS.cyan, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 18, fontWeight: "800", marginTop: 9 },
+  profileRule: { height: 1, backgroundColor: COLORS.line, marginVertical: 15 },
+  profilePair: { flexDirection: "row", gap: 18 },
+  profilePairBlock: { flex: 1 },
+  profilePairValue: { fontSize: 12, fontWeight: "800", marginTop: 6 },
+  nodeCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.red, padding: 16, marginBottom: 14 },
+  nodeCardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  nodeStatus: { color: COLORS.red, fontSize: 22, fontWeight: "800", marginTop: 7 },
+  nodeText: { color: COLORS.muted, fontSize: 12, lineHeight: 18, marginTop: 15 },
+  nodeChecklist: { borderTopWidth: 1, borderTopColor: COLORS.line, marginTop: 14, paddingTop: 12, gap: 5 },
+  nodeChecklistItem: { color: COLORS.muted, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10 },
+  ztraceCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.violet, padding: 16, marginBottom: 14 },
+  ztraceTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  ztraceGlyph: { color: COLORS.violet, fontSize: 22 },
+  ztraceValue: { color: COLORS.violet, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 18, fontWeight: "800", letterSpacing: 0.8, marginTop: 14 },
+  ztraceDescription: { color: COLORS.muted, fontSize: 11, lineHeight: 17, marginTop: 10 },
+  profileGrid: { flexDirection: "row", backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, paddingVertical: 15, marginBottom: 14 },
+  profileGridItem: { flex: 1, alignItems: "center" },
+  profileGridValue: { color: COLORS.ink, fontSize: 17, fontWeight: "800" },
+  profileGridLabel: { color: COLORS.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.1, marginTop: 5 },
   boundaryCard: { borderLeftWidth: 2, borderLeftColor: COLORS.amber, paddingLeft: 14, marginTop: 14 },
   boundaryText: { color: COLORS.ink, fontSize: 13, lineHeight: 20, marginTop: 10 },
   boundaryRule: { height: 1, backgroundColor: COLORS.line, marginVertical: 14 },

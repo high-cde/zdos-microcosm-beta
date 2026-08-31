@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createReceipt, previewZretro, runTerminalCommand, validateZlang } from "../lib/zdos-demo";
+import { computeZtrace, createReceipt, previewZretro, runTerminalCommand, validateZlang } from "../lib/zdos-demo";
+import { PRIVATE_ZDOS_NODE, nodeBindingState } from "../lib/zdos-node";
 
 describe("ZDOS local demo contracts", () => {
   it("returns the bounded system status without executing a shell", () => {
@@ -43,5 +44,22 @@ describe("ZDOS local demo contracts", () => {
       status: "DENIED",
       detail: "command outside supported profile",
     });
+  });
+
+  it("creates a stable, non-secret ZTRACE fingerprint for the same session context", () => {
+    const first = computeZtrace("profile", 3);
+    const second = computeZtrace("profile", 3);
+
+    expect(first).toBe(second);
+    expect(first).toMatch(/^ZTRACE-[0-9A-F]{8}$/);
+    expect(computeZtrace("profile", 4)).not.toBe(first);
+  });
+
+  it("recognizes the enrolled VPS metadata without enabling remote execution", () => {
+    expect(nodeBindingState(PRIVATE_ZDOS_NODE)).toBe("IDENTIFIED");
+    expect(PRIVATE_ZDOS_NODE.nodeName).toBe("vmi3082470.contaboserver.net");
+    expect(PRIVATE_ZDOS_NODE.transport).toBe("not-configured");
+    expect(PRIVATE_ZDOS_NODE.remoteExecution).toBe(false);
+    expect(PRIVATE_ZDOS_NODE.networkExposure).toBe(false);
   });
 });

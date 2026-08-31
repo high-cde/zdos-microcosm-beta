@@ -46,3 +46,13 @@ export function previewZretro(_manifest: string): DemoResult {
 export function createReceipt(operation: string, result: DemoResult, id = `${operation}-${Date.now()}`): Receipt {
   return { id, operation, status: result.status, detail: result.detail };
 }
+
+export function computeZtrace(surface: string, receiptCount: number): string {
+  const input = `zdos.microcosm.beta|DEFAULT-DENY|${surface}|${receiptCount}`;
+  let hash = 2166136261;
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `ZTRACE-${(hash >>> 0).toString(16).padStart(8, "0").toUpperCase()}`;
+}
