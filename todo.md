@@ -34,4 +34,4 @@
 - [x] Add an explicit node status/profile surface to the app without exposing secrets
 - [x] Add a documented advanced “magic” layer with deterministic local diagnostics and traceable receipts
 - [ ] Attach the recognized private ZDOS node only after confirming its identity and supported access method
-- [ ] Test the extended profile and synchronize the changes to the private GitHub repository
+- [x] Test the extended profile and synchronize the changes to the private GitHub repository
