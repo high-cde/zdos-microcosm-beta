@@ -1,48 +1,72 @@
 # ZDOS Microcosm Beta
 
-ZDOS Microcosm Beta è un’app mobile Expo/React Native offline-first, orientata ad Android e pensata come laboratorio didattico per l’ecosistema ZDOS. L’esperienza include un terminale locale dimostrativo, un playground Zlang, uno studio ZRetro, una Evidence Chain di sessione e una matrice Security basata su un profilo `DEFAULT-DENY`.
+**ZDOS Microcosm Beta** è una piccola app Expo/React Native offline-first che presenta un menu minimo con i soli progetti ufficiali **ZDOS** e **Zlang**.
 
-## Limiti intenzionali
+> Questa beta è una console informativa locale. Non è una shell Android, non esegue comandi reali e non attiva collegamenti remoti.
 
-La beta non è una shell Android general-purpose. Non esegue programmi o comandi reali, non apre socket, non accede liberamente al filesystem, non usa account o backend remoti e non include compilatori nativi, emulatori o ROM retro. Le ricevute sono mantenute nello stato React della sessione e la loro persistenza locale è una possibile estensione futura.
+## Stato attuale
 
-## Stack
+| Area | Stato |
+|---|---|
+| Menu principale | Due sole voci: ZDOS e Zlang |
+| Interazione | Card apribili, profilo locale richiudibile |
+| Visual design | Palette dark cyan/lime/violet e micro-immagini ASCII |
+| Rete | Negata nella beta |
+| Esecuzione | Preview informativa, nessuna shell o processo nativo |
+| Persistenza | Stato locale della schermata; nessun backend |
+| Android | Export Expo verificato; APK nativo da produrre con una pipeline Android |
 
-Il progetto usa Expo SDK 54, React Native 0.81, React 19, Expo Router 6, TypeScript 5.9, NativeWind 4 e Vitest 2.1.9. Il template contiene anche capacità server/database, ma questa beta resta locale e non richiede credenziali o servizi esterni. Il profilo `zdos.microcosm.beta` riconosce il nodo `vmi3082470.contaboserver.net` (`ZNODE-FF0A135D12F83F61`) come `IDENTIFIED / UNLINKED`: il trasporto resta `not-configured` e non viene consentita esecuzione remota. La firma `ZTRACE` è un fingerprint deterministico locale, informativo e non utilizzabile come segreto.
+## Funzioni
 
-## Sviluppo locale
+La card **ZDOS** mostra il profilo del kernel/distro, il target x86_64, il percorso build/QEMU e il riferimento alla Evidence Chain. La card **Zlang** mostra il profilo compiler/VM, il contratto ZLB2 v2.5 e il fatto che la validazione nella beta è soltanto locale e informativa.
+
+Le micro-immagini visualizzate nelle card sono stringhe ASCII colorate renderizzate con font monospace. Non vengono scaricate immagini esterne e non vengono aggiunti asset grafici per il menu.
+
+## Avvio locale
 
 ```bash
 pnpm install
 pnpm dev:metro
 ```
 
-Il controllo TypeScript e i test sono eseguibili con:
+Per eseguire il controllo statico e i test:
 
 ```bash
 pnpm check
 pnpm vitest run --passWithNoTests
 ```
 
-Il bundle JavaScript Android già esportato localmente si trova in `dist-android/` ed è stato prodotto con:
+Per generare l’export Android Expo:
 
 ```bash
-npx expo export --platform android --output-dir dist-android
+npx expo export --platform android --output-dir dist-android-minimal
 ```
 
-La generazione di un APK nativo richiede un ambiente Android SDK/Gradle configurato; questo workspace contiene invece l’export Expo Android verificato e non include una cartella nativa `android/`.
+L’export produce il bundle JavaScript e i metadata Android. **Non produce da solo un file APK installabile e firmato**; per quello serve una build Android/EAS con keystore e configurazione di distribuzione.
 
-## Struttura principale
+## Struttura essenziale
 
 | Percorso | Ruolo |
 |---|---|
-| `app/(tabs)/index.tsx` | Home Microcosm e superfici demo |
-| `lib/zdos-demo.ts` | Contratti deterministici per terminale, Zlang, ZRetro, ricevute e ZTRACE |
-| `lib/zdos-node.ts` | Metadati non-segreti del nodo privato riconosciuto |
-| `tests/zdos-demo.test.ts` | Test unitari del comportamento demo |
-| `app.config.ts` | Nome, slug, orientamento, package Android e branding |
-| `assets/images/` | Icona, splash, favicon e foreground adaptive icon |
-| `design.md` | Piano di interfaccia mobile |
-| `todo.md` | Registro di funzionalità e limiti beta |
-| `profile.md` | Contratto del profilo e del binding al nodo privato |
-| `dist-android/` | Export locale del bundle Expo per Android |
+| `app/(tabs)/index.tsx` | Home minima, menu ZDOS/Zlang e profili locali |
+| `components/screen-container.tsx` | Safe area comune |
+| `app.config.ts` | Nome, slug, package Android e branding Expo |
+| `assets/images/` | Icona e splash dell’app; non usati come micro-immagini del menu |
+| `tests/zdos-demo.test.ts` | Test dei contratti demo ereditati |
+| `design.md` | Specifica visiva aggiornata |
+| `profile.md` | Confini di sicurezza e profilo locale |
+| `todo.md` | Checklist beta e gap residui |
+
+## Confini di sicurezza
+
+La beta usa un modello `DEFAULT-DENY`: nessun socket, nessuna shell Android, nessun accesso libero al filesystem, nessun compilatore nativo, nessuna ROM/emulatore e nessuna sincronizzazione automatica con ZDOS Lab o con un nodo remoto. I riferimenti a ZDOS e Zlang sono profili informativi, non dichiarazioni di esecuzione sul dispositivo.
+
+## Prossimo passo per l’APK
+
+Per trasformare l’export in un APK beta installabile occorre configurare una build Android riproducibile, scegliere un application ID definitivo, impostare versioning e signing, eseguire una build `preview` e allegare checksum e note di release. Il codice della home minima è già isolato e pronto per questo passaggio.
+
+## Riferimenti
+
+- [ZDOS](https://github.com/high-cde/ZDOS)
+- [Zlang](https://github.com/high-cde/Zlang)
+- [Pull request della beta minima](https://github.com/high-cde/zdos-microcosm-beta/pull/1)
