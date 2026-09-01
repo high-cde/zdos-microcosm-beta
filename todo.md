@@ -1,37 +1,33 @@
-# Project TODO
+# Beta checklist
 
-- [x] Recreate ZDOS Microcosm Beta Home / Microcosm screen
-- [x] Add offline beta status markers and default-deny messaging
-- [x] Implement local demo terminal with supported commands and explicit denials
-- [x] Implement Zlang Playground with ZLB2 v2.5 validation demo
-- [x] Implement ZRetro Studio with Meteor Patrol preview demo
-- [x] Implement session Evidence Chain receipt list
-- [x] Implement Security / Capabilities screen
-- [x] Add one-handed portrait navigation and return-to-microcosm flow
-- [x] Apply ZDOS retro-futuristic laboratory design tokens and typography
-- [x] Configure Expo app metadata for ZDOS Microcosm Beta
-- [x] Generate and install custom app icon assets
-- [x] Add unit tests for demo commands, Zlang validation and receipt structure
-- [x] Run TypeScript and Vitest checks
-- [x] Produce a local Android JavaScript bundle export without GitHub publication
+## Completato
 
-## Known beta limits
+| Area | Stato |
+|---|---|
+| Home minima | Menu con sole card `ZDOS` e `Zlang` |
+| Interazione | Apertura e chiusura del profilo locale |
+| Visual design | Palette dark cyan/lime/violet |
+| Micro-immagini | ASCII colorato, senza asset esterni per le card |
+| Sicurezza | Offline, default-deny, read-only, nessuna shell |
+| Configurazione | Expo name, slug, package Android e portrait |
+| Qualità | TypeScript e test demo eseguiti |
+| Export | Bundle Android Expo generato in `dist-android-minimal/` |
 
-- [ ] Local receipts remain session state; no AsyncStorage persistence in this build
-- [ ] No native Zlang compiler, Android shell, emulator, ROM or remote backend
+## Beta corrente
 
-## GitHub publication
+La beta corrente è una console informativa locale. I badge `VERIFIED` identificano il profilo catalogato del progetto e non attestano un build, un boot o una compilazione eseguiti sul telefono.
 
-- [x] Optimize generated icon assets for repository size limits
-- [x] Create a private GitHub repository named `zdos-microcosm-beta`
-- [x] Push the prepared source, tests and local Android bundle to GitHub
-- [x] Verify the remote repository contents and privacy setting
+## Mancanze per APK installabile
 
-## Profile and private node extension
+| Attività | Stato | Nota |
+|---|---|---|
+| Build Android nativa | Da fare | Serve EAS o Android SDK/Gradle configurato. |
+| Signing e keystore | Da fare | Il keystore non deve essere committato. |
+| Application ID definitivo | Da confermare | Verificare `android.package` prima della distribuzione. |
+| Versioning beta | Da fare | Impostare version code e release channel. |
+| Test su dispositivi reali | Da fare | Verificare layout, back gesture e installazione. |
+| Checksum APK | Da fare | Pubblicare SHA-256 insieme all’APK. |
 
-- [x] Inspect current connector and VPS-related configuration for a recognizable private ZDOS node
-- [x] Define and document the ZDOS Microcosm profile boundaries before attaching external infrastructure
-- [x] Add an explicit node status/profile surface to the app without exposing secrets
-- [x] Add a documented advanced “magic” layer with deterministic local diagnostics and traceable receipts
-- [ ] Attach the recognized private ZDOS node only after confirming its identity and supported access method
-- [x] Test the extended profile and synchronize the changes to the private GitHub repository
+## Fuori scope intenzionale
+
+Restano disabilitati terminale reale, shell Android, compilatore nativo Zlang, kernel ZDOS eseguibile, emulatori, ROM, socket, filesystem libero, account, backend e sincronizzazione automatica. La persistenza delle ricevute, l’import del manifest Lab e il collegamento read-only a SEC Portal sono estensioni future, non funzioni della beta minima.
