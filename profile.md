@@ -1,40 +1,33 @@
-# ZDOS Microcosm — Profilo operativo
+# ZDOS Microcosm Beta — Profilo locale
 
 ## Identità
 
-| Campo | Valore |
-|---|---|
-| Profile ID | `zdos.microcosm.beta` |
-| Display name | `ZDOS Microcosm Beta` |
-| Mode | `offline-first / portrait / Android` |
-| Identity | `guest` |
-| Posture | `READY` |
-| Default policy | `DEFAULT-DENY` |
-| Node binding | `IDENTIFIED / UNLINKED` finché non viene configurato un trasporto autenticato |
+L’app presenta due soli progetti nel menu: `ZDOS` e `Zlang`. Le informazioni mostrate sono profili locali derivati dalla documentazione dell’ecosistema; non rappresentano un collegamento attivo, una sessione autenticata o un runtime eseguito sul telefono.
 
-Il progetto resta un laboratorio locale. Il collegamento a un nodo privato non deve trasformare l’app in una shell remota o in un agente con privilegi impliciti. L’identità del nodo, il trasporto e le capability ammesse devono essere dichiarati prima dell’attivazione.
+| Progetto | Ruolo visualizzato | Stato UI |
+|---|---|---|
+| `ZDOS` | Kernel, distro, build ed Evidence Chain | `VERIFIED` come profilo catalogato |
+| `Zlang` | Compiler, VM e contratto ZLB2 | `VERIFIED` come profilo catalogato |
 
-## Contratto del nodo privato ZDOS
+## Capability attive
 
-Il binding previsto è intenzionalmente ristretto a un nodo che esponga un’identità verificabile e operazioni allowlist. Il profilo iniziale autorizza soltanto `node.status`, `evidence.append` e `manifest.preview`; non autorizza shell remota, esecuzione arbitraria, accesso libero al filesystem, socket generici, gestione di segreti o modifica di capability.
+| Capability | Stato | Significato |
+|---|---|---|
+| Menu progetti | `READY` | Le due card sono leggibili e interattive. |
+| Profilo locale | `READ-ONLY` | La selezione mostra informazioni senza modificare dati. |
+| Rete | `DENIED` | L’app minima non apre connessioni né sincronizza. |
+| Shell/processi | `DENIED` | Nessun comando Android o processo del progetto viene eseguito. |
+| Filesystem | `DENIED` | Nessun accesso libero al filesystem del dispositivo. |
+| Backend/account | `DISABLED` | Non sono richiesti login, server o credenziali. |
 
-| Elemento | Regola |
-|---|---|
-| Node identity | Nome completo e fingerprint devono provenire dalla configurazione realmente disponibile, mai da un’ipotesi |
-| Transport | Endpoint o canale dichiarato dall’utente; nessun endpoint inventato |
-| Auth | Credenziale mantenuta fuori dal client e mai scritta nell’interfaccia o nei commit |
-| Default | `UNLINKED` e `DENIED` finché l’identità non è verificata |
-| Read model | Stato e ricevute possono essere letti; le azioni mutanti restano disabilitate |
-| Failure mode | Nodo non riconosciuto, non raggiungibile o non verificabile = nessun tentativo di collegamento |
+## Regola di verità
 
-Il profilo ricevuto dalla VPS identifica il nodo come `vmi3082470.contaboserver.net`, con ID `ZNODE-FF0A135D12F83F61`, sistema `Ubuntu 22.04` e kernel `Linux 5.15.0-190-generic`. Il progetto espone quindi lo stato `IDENTIFIED / UNLINKED`: l’identità è registrata, ma non viene attivato alcun collegamento remoto perché il trasporto è ancora `not-configured`.
+Il badge `VERIFIED` nella card descrive il profilo del progetto nel catalogo di riferimento. Non equivale a una compilazione, a un boot o a una verifica hardware eseguita dall’APK. Qualsiasi futura integrazione dovrà mostrare separatamente `LOCAL PROFILE`, `EVIDENCE RECORD` e `RUNTIME TEST`.
 
-## ZTRACE — la “magia” trasparente
+## Dati remoti e nodo privato
 
-La magia del Microcosm è una firma di orientamento locale chiamata `ZTRACE`. È un fingerprint deterministico, non segreto e non crittografico, derivato da `Profile ID`, policy attiva, superficie corrente e numero di ricevute. Serve a rendere visibile quando la sessione cambia contesto e a collegare mentalmente ogni operazione alla postura del sistema.
+La beta minima non collega nodi privati, VPS, SEC Portal o altri endpoint. Eventuali riferimenti presenti nella documentazione storica non costituiscono configurazione attiva dell’app. Nessun endpoint, token o segreto deve essere inserito nel client o nel repository.
 
-La firma non invia dati, non identifica l’utente e non sostituisce una verifica crittografica. Nel nodo privato, una futura implementazione potrà affiancare a `ZTRACE` una vera attestazione verificata, senza riutilizzare questo valore come credenziale.
+## Capability future
 
-## Regole di sicurezza
-
-Il profilo non deve contenere backdoor, comportamenti nascosti o “conoscenza” non documentata che modifichi i permessi. Le funzioni avanzate devono essere osservabili nell’interfaccia, coperte da test e accompagnate da una ricevuta locale. Qualsiasi bridge remoto deve essere esplicito, autenticato, read-only per impostazione predefinita e disattivabile senza perdere i dati locali.
+L’importazione di manifest del Lab, la visualizzazione di evidence record con checksum, il collegamento read-only a SEC Portal e la generazione di un APK firmato sono attività successive. Prima dell’attivazione servono schema versionato, autenticazione, timeout, test negativi, gestione degli errori e un gate CI riproducibile.

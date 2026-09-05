@@ -40,7 +40,7 @@ app-example
 
 # generated native folders
 /ios
-/android
+# Android native project is intentionally versioned for reproducible APK builds
 
 # IDE
 .vscode/
@@ -60,6 +60,7 @@ Thumbs.db
 *.tgz
 *.tar.gz
 .cache/
+dist-android-*/
 
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
