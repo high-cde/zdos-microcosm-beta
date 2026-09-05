@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
+import { appendEvidence, createLocalChain, verifyChain, type ZChainEntry } from "@/lib/zchain";
 
 type ProjectId = "zdos" | "zlang";
 
@@ -99,7 +100,27 @@ function ProjectCard({ project, active, onPress }: { project: Project; active: b
 
 export default function HomeScreen() {
   const [selected, setSelected] = useState<ProjectId | null>(null);
+  const [chain, setChain] = useState<ZChainEntry[]>([]);
+  const [chainValid, setChainValid] = useState(false);
   const project = PROJECTS.find((item) => item.id === selected) ?? null;
+
+  useEffect(() => {
+    let mounted = true;
+    void createLocalChain().then(async (localChain) => {
+      if (!mounted) return;
+      setChain(localChain);
+      setChainValid(await verifyChain(localChain));
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  async function attestProject(projectId: ProjectId) {
+    const next = await appendEvidence(chain, `project.${projectId}.opened`);
+    setChain(next);
+    setChainValid(await verifyChain(next));
+  }
 
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
@@ -129,6 +150,23 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        <View style={styles.chainCard}>
+          <View style={styles.chainHeader}>
+            <View>
+              <Text style={styles.smallLabel}>ZCHAIN / LOCAL EVIDENCE</Text>
+              <Text style={styles.chainTitle}>NODE STATUS · {chain.length ? "READY" : "BOOTING"}</Text>
+            </View>
+            <Text style={[styles.chainStatus, { color: chainValid ? COLORS.lime : COLORS.violet }]}>{chainValid ? "VERIFIED" : "CHECKING"}</Text>
+          </View>
+          <View style={styles.rule} />
+          <View style={styles.chainMetrics}>
+            <View><Text style={styles.markerValue}>{chain.length.toString().padStart(2, "0")}</Text><Text style={styles.markerCaption}>ENTRIES</Text></View>
+            <View><Text style={styles.markerValue}>LOCAL</Text><Text style={styles.markerCaption}>CHAIN</Text></View>
+            <View><Text style={styles.markerValue}>DENIED</Text><Text style={styles.markerCaption}>NETWORK</Text></View>
+          </View>
+          <Text style={styles.chainNote}>Ledger non monetario, append-only e verificato offline. Nessun nodo remoto viene contattato.</Text>
+        </View>
+
         <View style={styles.sectionRow}>
           <Text style={styles.sectionLabel}>PROJECT MENU</Text>
           <Text style={styles.sectionCount}>02</Text>
@@ -136,7 +174,10 @@ export default function HomeScreen() {
         <Text style={styles.helper}>Seleziona un progetto per vedere il profilo locale. Nessun comando viene eseguito sul dispositivo.</Text>
 
         {PROJECTS.map((item) => (
-          <ProjectCard key={item.id} project={item} active={selected === item.id} onPress={() => setSelected(item.id)} />
+          <ProjectCard key={item.id} project={item} active={selected === item.id} onPress={() => {
+              setSelected(item.id);
+              void attestProject(item.id);
+            }} />
         ))}
 
         {project ? (
@@ -171,7 +212,13 @@ const styles = StyleSheet.create({
   offlineText: { color: COLORS.muted, fontSize: 9, fontWeight: "700", letterSpacing: 1 },
   title: { color: COLORS.ink, fontSize: 42, fontWeight: "900", letterSpacing: -1, lineHeight: 48 },
   subtitle: { color: COLORS.muted, fontSize: 15, lineHeight: 22, marginTop: 7, marginBottom: 22, maxWidth: 320 },
-  postureCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 18, marginBottom: 28 },
+  postureCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 18, marginBottom: 18 },
+  chainCard: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.line, padding: 18, marginBottom: 28 },
+  chainHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  chainTitle: { color: COLORS.ink, fontSize: 17, fontWeight: "900", marginTop: 5 },
+  chainStatus: { fontSize: 10, fontWeight: "900", letterSpacing: 1 },
+  chainMetrics: { flexDirection: "row", justifyContent: "space-between" },
+  chainNote: { color: COLORS.muted, fontSize: 12, lineHeight: 18, marginTop: 16 },
   smallLabel: { color: COLORS.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1.3 },
   posture: { color: COLORS.lime, fontSize: 27, fontWeight: "900", marginTop: 4 },
   ring: { position: "absolute", right: 18, top: 18, width: 42, height: 42, borderRadius: 21, borderWidth: 2, borderColor: COLORS.lime, alignItems: "center", justifyContent: "center" },
