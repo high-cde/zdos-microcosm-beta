@@ -4,7 +4,7 @@ ZDOS Microcosm Beta è un’app mobile Expo/React Native offline-first, orientat
 
 ## Release beta.4
 
-La release `v1.0.0-beta.4` aggiunge il **Zlang Micro Terminal**, limitato alle istruzioni `help` e `emit <testo>`, senza shell Android, processi, rete o accesso libero al filesystem. Include inoltre le superfici **Zchain Zlang** read-only, **Node Pulse** e la configurazione EAS per APK Android installabile.
+La release `v1.0.0-beta.4` aggiunge il **Zlang Micro Terminal**, limitato alle istruzioni `help` e `emit <testo>`, senza shell Android, processi, rete o accesso libero al filesystem. Include inoltre le **Zlang Capsules**, tre preset locali per inserire rapidamente messaggi `emit`, le superfici **Zchain Zlang** read-only, **Node Pulse** e la configurazione EAS per APK Android installabile.
 
 **APK Android:** [scarica l’ultima build Expo](https://expo.dev/artifacts/eas/k3TFfOXCtuww-_GiqXKDuyV-nIbwqGpKA_FrQWoeEOU.apk)
 

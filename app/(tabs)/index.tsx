@@ -295,6 +295,8 @@ function ZlangMicroTerminalSurface({ onBack, onReceipt }: { onBack: () => void; 
     setCommand("");
   };
 
+  const quickActions = ["emit ZDOS risponde", "emit heartbeat core-01", "emit ZTRACE pulse"];
+
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -305,6 +307,17 @@ function ZlangMicroTerminalSurface({ onBack, onReceipt }: { onBack: () => void; 
             <View style={styles.terminalOutput}>
               {history.map((entry) => <View key={entry.id} style={styles.terminalEntry}>{entry.command !== "system" ? <Text style={styles.terminalPrompt}>zlang@zdos:~$ {entry.command}</Text> : null}<Text style={styles.terminalText}>{entry.output}</Text><Text style={[styles.terminalStatus, { color: statusColor(entry.status) }]}>{entry.status}</Text></View>)}
               <View style={styles.terminalInputRow}><Text style={styles.terminalPrompt}>zlang@zdos:~$</Text><TextInput accessibilityLabel="Comando Zlang micro terminale" value={command} onChangeText={setCommand} onSubmitEditing={submitCommand} placeholder="emit ZDOS risponde" placeholderTextColor="#5D737C" autoCapitalize="none" autoCorrect={false} returnKeyType="done" style={styles.terminalInput} /></View>
+            </View>
+          </View>
+          <View style={styles.quickActionCard}>
+            <Text style={styles.microLabel}>ZLANG CAPSULES</Text>
+            <Text style={styles.quickActionIntro}>Preset locali per provare il terminale senza digitare.</Text>
+            <View style={styles.quickActionRow}>
+              {quickActions.map((action) => (
+                <Pressable key={action} accessibilityRole="button" accessibilityLabel={`Inserisci ${action}`} onPress={() => setCommand(action)} style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}>
+                  <Text style={styles.quickActionText}>{action.replace("emit ", "")}</Text>
+                </Pressable>
+              ))}
             </View>
           </View>
           <View style={styles.commandHintCard}><Text style={styles.microLabel}>ALLOWED SURFACE</Text><Text style={styles.commandHint}>help  ·  emit &lt;text&gt;  ·  ZLB2 v2.5  ·  HALT</Text></View>
@@ -846,6 +859,11 @@ const styles = StyleSheet.create({
   terminalInputRow: { flexDirection: "row", alignItems: "center", borderTopWidth: 1, borderTopColor: COLORS.line, paddingTop: 12 },
   terminalInput: { flex: 1, color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 12, padding: 0, marginLeft: 8, minHeight: 24 },
   commandHintCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 14 },
+  quickActionCard: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.lime, padding: 14, marginBottom: 10 },
+  quickActionIntro: { color: COLORS.muted, fontSize: 11, lineHeight: 17, marginTop: 8 },
+  quickActionRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  quickAction: { borderWidth: 1, borderColor: COLORS.lime, paddingHorizontal: 10, paddingVertical: 8 },
+  quickActionText: { color: COLORS.lime, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10 },
   commandHint: { color: COLORS.cyan, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 11, lineHeight: 20, marginTop: 9 },
   disclaimer: { color: COLORS.muted, fontSize: 11, lineHeight: 17, marginTop: 18 },
   editorCard: { backgroundColor: COLORS.panelSoft, borderWidth: 1, padding: 14, minHeight: 182, marginBottom: 14 },
