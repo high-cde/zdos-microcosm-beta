@@ -37,6 +37,7 @@ La schermata principale presenta un catalogo di superfici locali. Ogni superfici
 | **06 — ZDOS Profile** | ROADMAP | Presenta identità, policy attiva e binding del nodo privato. |
 | **07 — Node Pulse** | READY | Mostra un heartbeat pubblico read-only del nodo First Node core-01. |
 | **08 — Zchain Zliang** | ROADMAP | Prevede la lettura blockchain read-only con profilo Orbot opzionale. |
+| **09 — ZComm Telecom** | READY | Osserva una fixture telecom in Zlang senza trasmettere o aprire socket. |
 
 ![ZDOS Microcosm — surfaces](docs/screenshots/microcosm-surfaces.jpg)
 
@@ -61,6 +62,22 @@ La sintassi non appartenente al profilo supportato viene respinta con `DENIED`.
 ### ZRetro Studio
 
 La preview locale restituisce lo stato `VERIFIED` e il dettaglio `IR READY · manifest prepared`. Nella beta attuale questa è una preview contrattuale, non un compilatore o un generatore IR completo.
+
+### ZComm Telecom
+
+`ZComm Telecom` è il primo tool telecomunicazioni della beta. Il suo programma è scritto interamente nel profilo locale Zlang `ZLB2 telecom.local` e permette soltanto osservazione bounded di una fixture UHF, ispezione read-only del percorso e negazione esplicita della trasmissione.
+
+Il template eseguibile è:
+
+```zlang
+telecom.status
+telecom.scan band=uhf
+telecom.route inspect
+telecom.tx deny
+halt
+```
+
+Il risultato atteso è `ACCEPTED`, con link `LOCAL OBSERVATION`, route `READ-ONLY` e `transmit: DENIED`. Il parser rifiuta comandi per socket, radio, rete o trasmissione e non esegue alcuna operazione telecom reale. `halt` è obbligatorio per chiudere il profilo.
 
 ### Evidence Chain e ZTRACE
 
@@ -96,6 +113,7 @@ Il progetto usa Expo Router per il routing, React Native/TypeScript per l’appl
 | `app/` | Schermate Expo Router, layout globale e callback OAuth. |
 | `components/` | Componenti visuali riutilizzabili e tematizzati. |
 | `lib/zdos-demo.ts` | Contratti locali per terminale, validazione, preview e receipt. |
+| `lib/zdos-telecom.ts` | Interprete bounded del profilo telecom Zlang locale. |
 | `lib/zdos-node.ts` | Profilo descrittivo del nodo ZDOS. |
 | `lib/trpc.ts` | Client tRPC e collegamento al backend. |
 | `server/` | Router, autenticazione e servizi infrastrutturali. |
@@ -106,6 +124,8 @@ Il progetto usa Expo Router per il routing, React Native/TypeScript per l’appl
 ## Sicurezza e limiti intenzionali
 
 Il progetto adotta un modello **local by design**. La rete è negata nella postura mostrata, lo storage è read-only nella superficie principale e le capacità non dichiarate vengono negate. Questi limiti sono parte del comportamento previsto della beta, non errori di configurazione.
+
+`ZComm Telecom` è un simulatore didattico locale: non sostituisce un modem, uno scanner RF, un client SIP, una radio o un sistema di monitoraggio di rete.
 
 Le funzionalità indicate come `ROADMAP` sono segnali di direzione progettuale. In particolare, il profilo ZDOS, Node Pulse e Zchain Zliang non devono essere interpretati come integrazioni remote o blockchain operative già disponibili nel repository.
 
