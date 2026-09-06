@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -21,8 +21,10 @@ import {
   type ReceiptStatus,
 } from "@/lib/zdos-demo";
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "@/lib/zdos-node";
+import { fetchZdosNodeStatus, nodeStatusAsReceiptStatus, type ZdosNodeStatusResult } from "@/lib/zdos-node-status";
+import { ZCHAIN_PROJECT, orbotEndpoint, validateZchainZlang } from "@/lib/zchain-zlang";
 
-type Surface = "home" | "terminal" | "zlang" | "zretro" | "evidence" | "security" | "profile";
+type Surface = "home" | "terminal" | "zlang" | "zretro" | "evidence" | "security" | "profile" | "node" | "zchain" | "microterm";
 
 type TerminalEntry = {
   id: string;
@@ -55,6 +57,14 @@ const COLORS = {
 };
 
 const MENU_CARDS: MenuCard[] = [
+  {
+    id: "microterm",
+    index: "00",
+    title: "Zlang Micro Terminal",
+    description: "Terminale stile Termux, limitato al solo profilo Zlang by ZDOS.",
+    status: "READY",
+    accent: COLORS.lime,
+  },
   {
     id: "terminal",
     index: "01",
@@ -102,6 +112,22 @@ const MENU_CARDS: MenuCard[] = [
     description: "Identità, policy attiva e binding del nodo privato.",
     status: "ROADMAP",
     accent: COLORS.cyan,
+  },
+  {
+    id: "node",
+    index: "07",
+    title: "Node Pulse",
+    description: "Heartbeat pubblico read-only del nodo First Node core-01.",
+    status: "READY",
+    accent: COLORS.lime,
+  },
+  {
+    id: "zchain",
+    index: "08",
+    title: "Zchain Zlang",
+    description: "Lettura blockchain read-only con profilo Orbot opzionale.",
+    status: "ROADMAP",
+    accent: COLORS.violet,
   },
 ];
 
@@ -248,6 +274,44 @@ function ReceiptCard({ receipt }: { receipt: Receipt }) {
       <Text style={styles.receiptDetail}>{receipt.detail}</Text>
       <Text style={styles.receiptLink}>local receipt · hash linked</Text>
     </View>
+  );
+}
+
+function ZlangMicroTerminalSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
+  const [command, setCommand] = useState("");
+  const [history, setHistory] = useState<TerminalEntry[]>([
+    { id: "microterm-welcome", command: "system", output: "ZDOS Zlang Micro Terminal\nZLB2 v2.5 · emit only · HALT linked", status: "READY" },
+  ]);
+
+  const submitCommand = () => {
+    const trimmed = command.trim();
+    if (!trimmed) return;
+    const normalized = trimmed.toLowerCase();
+    const result = normalized === "help"
+      ? { output: "help\nemit <text>\n\nOnly Zlang emit is accepted. Shell, network and filesystem are unavailable.", status: "READY" as ReceiptStatus, detail: "Zlang-only command surface" }
+      : validateZlang(trimmed);
+    setHistory((previous) => [...previous, { id: `${Date.now()}`, command: trimmed, output: result.output, status: result.status }]);
+    onReceipt({ operation: "zlang.microterm", status: result.status, detail: result.detail });
+    setCommand("");
+  };
+
+  return (
+    <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView contentContainerStyle={styles.surfaceContent} keyboardShouldPersistTaps="handled">
+          <SurfaceHeader title="ZLANG MICRO TERMINAL" eyebrow="SURFACE / 00 · ZDOS ONLY" onBack={onBack} />
+          <View style={styles.terminalFrame}>
+            <View style={styles.terminalTopBar}><View style={styles.terminalLights}><View style={[styles.terminalLight, { backgroundColor: COLORS.red }]} /><View style={[styles.terminalLight, { backgroundColor: COLORS.amber }]} /><View style={[styles.terminalLight, { backgroundColor: COLORS.lime }]} /></View><Text style={styles.terminalTopText}>ZLANG / NO SHELL</Text></View>
+            <View style={styles.terminalOutput}>
+              {history.map((entry) => <View key={entry.id} style={styles.terminalEntry}>{entry.command !== "system" ? <Text style={styles.terminalPrompt}>zlang@zdos:~$ {entry.command}</Text> : null}<Text style={styles.terminalText}>{entry.output}</Text><Text style={[styles.terminalStatus, { color: statusColor(entry.status) }]}>{entry.status}</Text></View>)}
+              <View style={styles.terminalInputRow}><Text style={styles.terminalPrompt}>zlang@zdos:~$</Text><TextInput accessibilityLabel="Comando Zlang micro terminale" value={command} onChangeText={setCommand} onSubmitEditing={submitCommand} placeholder="emit ZDOS risponde" placeholderTextColor="#5D737C" autoCapitalize="none" autoCorrect={false} returnKeyType="done" style={styles.terminalInput} /></View>
+            </View>
+          </View>
+          <View style={styles.commandHintCard}><Text style={styles.microLabel}>ALLOWED SURFACE</Text><Text style={styles.commandHint}>help  ·  emit &lt;text&gt;  ·  ZLB2 v2.5  ·  HALT</Text></View>
+          <Text style={styles.disclaimer}>Questo micro terminale imita il linguaggio d’uso di Termux ma non è una shell: non esegue comandi Android, processi, rete, filesystem, Tor o blockchain. Accetta esclusivamente il profilo Zlang emit.</Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ScreenContainer>
   );
 }
 
@@ -479,15 +543,12 @@ function EvidenceSurface({ onBack, receipts }: { onBack: () => void; receipts: R
 }
 
 function SecuritySurface({ onBack }: { onBack: () => void }) {
-  const capabilities = useMemo(
-    () => [
+  const capabilities = [
       { key: "NETWORK", value: "DENIED", detail: "No automatic requests or sockets.", color: COLORS.red },
       { key: "STORAGE", value: "./workspace only", detail: "Boundary declared; no free filesystem access.", color: COLORS.cyan },
       { key: "EXECUTION", value: "PREVIEW ONLY", detail: "No shell, binaries or Android process launch.", color: COLORS.amber },
       { key: "IDENTITY", value: "guest", detail: "No account, login or cloud session.", color: COLORS.violet },
-    ],
-    [],
-  );
+  ];
 
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
@@ -517,6 +578,83 @@ function SecuritySurface({ onBack }: { onBack: () => void }) {
           <View style={styles.boundaryRule} />
           <Text style={styles.boundaryFoot}>Controlled by design · observable by default</Text>
         </View>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
+function ZchainSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
+  const [source, setSource] = useState("READ CHAIN");
+  const [result, setResult] = useState<ReturnType<typeof validateZchainZlang> | null>(null);
+
+  const validate = () => {
+    const nextResult = validateZchainZlang(source);
+    setResult(nextResult);
+    onReceipt({ operation: "zchain.zlang", status: nextResult.accepted ? "ACCEPTED" : "DENIED", detail: nextResult.detail });
+  };
+
+  return (
+    <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
+      <ScrollView contentContainerStyle={styles.surfaceContent} keyboardShouldPersistTaps="handled">
+        <SurfaceHeader title="ZCHAIN ZLANG" eyebrow="PROJECT / 01 · READ-ONLY BLOCKCHAIN" onBack={onBack} />
+        <View style={[styles.editorCard, { borderColor: COLORS.violet }]}>
+          <View style={styles.editorHeader}><Text style={styles.microLabel}>SOURCE / zchain.zlang</Text><Text style={[styles.editorTag, { color: COLORS.violet }]}>NO SIGNING</Text></View>
+          <TextInput accessibilityLabel="Editor Zchain Zlang" value={source} onChangeText={setSource} autoCapitalize="characters" autoCorrect={false} style={styles.codeEditor} selectionColor={COLORS.violet} />
+          <Text style={styles.lineNumber}>01</Text>
+        </View>
+        <PrimaryButton label="VALIDATE ZCHAIN INSTRUCTION" onPress={validate} accent={COLORS.violet} />
+        {result ? <View style={[styles.resultCard, { borderColor: result.accepted ? COLORS.lime : COLORS.red }]}><View style={styles.resultTopRow}><Text style={styles.resultTitle}>ZLANG RESULT</Text><StatusBadge status={result.accepted ? "ACCEPTED" : "DENIED"} /></View><Text style={styles.resultOutput}>{result.output}</Text><Text style={styles.resultDetail}>{result.detail}</Text></View> : null}
+        <View style={styles.capabilityCard}>
+          <View style={styles.capabilityRow}><View style={[styles.capabilityMarker, { backgroundColor: COLORS.lime }]} /><View style={styles.capabilityCopy}><Text style={styles.capabilityKey}>ORBOT ROUTE</Text><Text style={[styles.capabilityValue, { color: COLORS.lime }]}>{ZCHAIN_PROJECT.orbot.enabled ? "ENABLED" : "CONFIGURED / OFF"}</Text><Text style={styles.capabilityDetail}>{orbotEndpoint()} · SOCKS5 locale. L’app non avvia né controlla Orbot.</Text></View></View>
+          <View style={styles.capabilityRow}><View style={[styles.capabilityMarker, { backgroundColor: COLORS.cyan }]} /><View style={styles.capabilityCopy}><Text style={styles.capabilityKey}>CAPABILITIES</Text><Text style={[styles.capabilityValue, { color: COLORS.cyan }]}>READ-ONLY</Text><Text style={styles.capabilityDetail}>chain.info · block.read · receipt.verify</Text></View></View>
+          <View style={styles.capabilityRow}><View style={[styles.capabilityMarker, { backgroundColor: COLORS.red }]} /><View style={styles.capabilityCopy}><Text style={styles.capabilityKey}>DENIED</Text><Text style={[styles.capabilityValue, { color: COLORS.red }]}>SIGNING / BROADCAST</Text><Text style={styles.capabilityDetail}>Nessuna chiave privata, transazione o scrittura sulla chain.</Text></View></View>
+        </View>
+        <Text style={styles.disclaimer}>Prototipo ZDOS locale. L’endpoint RPC va configurato separatamente con EXPO_PUBLIC_ZCHAIN_RPC_URL. Orbot deve essere installato e configurato dall’utente; questa superficie non promette anonimato o consenso blockchain.</Text>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
+function NodePulseSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
+  const [result, setResult] = useState<ZdosNodeStatusResult | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const refresh = async () => {
+    setLoading(true);
+    const nextResult = await fetchZdosNodeStatus();
+    setResult(nextResult);
+    onReceipt({ operation: "node.status", status: nodeStatusAsReceiptStatus(nextResult.status), detail: nextResult.detail });
+    setLoading(false);
+  };
+
+  const displayStatus = result?.status || "OFFLINE";
+  const displayColor = displayStatus === "ONLINE" ? COLORS.lime : displayStatus === "STALE" ? COLORS.amber : COLORS.red;
+
+  return (
+    <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
+      <ScrollView contentContainerStyle={styles.surfaceContent}>
+        <SurfaceHeader title="NODE PULSE" eyebrow="SURFACE / 07 · HTTPS READ-ONLY" onBack={onBack} />
+        <View style={[styles.nodePulseHero, { borderColor: displayColor }]}>
+          <View style={styles.nodePulseTopRow}>
+            <View>
+              <Text style={styles.microLabel}>FIRST NODE / core-01</Text>
+              <Text style={[styles.nodePulseStatus, { color: displayColor }]}>{displayStatus}</Text>
+            </View>
+            <View style={[styles.nodePulseRing, { borderColor: displayColor }]}><View style={[styles.nodePulseRingInner, { backgroundColor: displayColor }]} /></View>
+          </View>
+          <Text style={styles.nodePulseDetail}>{result?.detail || "No heartbeat checked in this session."}</Text>
+          <Text style={styles.nodePulseUrl}>GET /api/node/core-01/status</Text>
+        </View>
+        <PrimaryButton label={loading ? "CHECKING HEARTBEAT..." : "CHECK PUBLIC HEARTBEAT"} onPress={refresh} accent={COLORS.lime} />
+        {result?.payload ? (
+          <View style={styles.nodePulseData}>
+            <View style={styles.nodePulseDataRow}><Text style={styles.nodePulseKey}>HEARTBEAT</Text><Text style={styles.nodePulseValue}>{result.payload.heartbeat_at}</Text></View>
+            <View style={styles.nodePulseDataRow}><Text style={styles.nodePulseKey}>UPTIME</Text><Text style={styles.nodePulseValue}>{result.payload.uptime_seconds}s</Text></View>
+            <View style={styles.nodePulseDataRow}><Text style={styles.nodePulseKey}>POLICY</Text><Text style={styles.nodePulseValue}>{result.payload.policy}</Text></View>
+            <View style={styles.nodePulseDataRow}><Text style={styles.nodePulseKey}>NETWORK</Text><Text style={styles.nodePulseValue}>{result.payload.network}</Text></View>
+          </View>
+        ) : null}
+        <Text style={styles.disclaimer}>ONLINE significa heartbeat HTTPS recente entro 90 secondi. LOCAL HASH ATTESTATION indica hash locali pubblicati, non una firma esterna né consenso distribuito. Il client effettua solo GET e non espone file, shell o comandi remoti.</Text>
       </ScrollView>
     </ScreenContainer>
   );
@@ -593,11 +731,14 @@ export default function MicrocosmScreen() {
   };
 
   if (surface === "terminal") return <TerminalSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
+  if (surface === "microterm") return <ZlangMicroTerminalSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "zlang") return <ZlangSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "zretro") return <ZretroSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "evidence") return <EvidenceSurface onBack={() => setSurface("home")} receipts={receipts} />;
   if (surface === "security") return <SecuritySurface onBack={() => setSurface("home")} />;
   if (surface === "profile") return <ProfileSurface onBack={() => setSurface("home")} receiptCount={receipts.length} />;
+  if (surface === "node") return <NodePulseSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
+  if (surface === "zchain") return <ZchainSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
 
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
@@ -630,7 +771,7 @@ export default function MicrocosmScreen() {
         ListFooterComponent={
           <View style={styles.homeFooter}>
             <Text style={styles.footerTitle}>MICROCOSM / LOCAL BY DESIGN</Text>
-            <Text style={styles.footerText}>A teaching beta. No general-purpose shell, no network calls, no hidden execution.</Text>
+            <Text style={styles.footerText}>A teaching beta. No general-purpose shell, no hidden execution. Node Pulse uses one explicit GET.</Text>
             <Text style={styles.footerCode}>ZDOS // v0.1.0 · PROFILE DEFAULT-DENY</Text>
           </View>
         }
@@ -766,6 +907,17 @@ const styles = StyleSheet.create({
   nodeText: { color: COLORS.muted, fontSize: 12, lineHeight: 18, marginTop: 15 },
   nodeChecklist: { borderTopWidth: 1, borderTopColor: COLORS.line, marginTop: 14, paddingTop: 12, gap: 5 },
   nodeChecklistItem: { color: COLORS.muted, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10 },
+  nodePulseHero: { backgroundColor: COLORS.panel, borderWidth: 1, padding: 16, marginBottom: 14 },
+  nodePulseTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  nodePulseStatus: { fontSize: 29, fontWeight: "800", letterSpacing: 1, marginTop: 7 },
+  nodePulseRing: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  nodePulseRingInner: { width: 12, height: 12, borderRadius: 6 },
+  nodePulseDetail: { color: COLORS.ink, fontSize: 12, lineHeight: 18, marginTop: 18 },
+  nodePulseUrl: { color: COLORS.muted, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, marginTop: 14 },
+  nodePulseData: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, paddingHorizontal: 14, marginBottom: 4 },
+  nodePulseDataRow: { flexDirection: "row", justifyContent: "space-between", gap: 12, borderBottomWidth: 1, borderBottomColor: COLORS.line, paddingVertical: 13 },
+  nodePulseKey: { color: COLORS.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1 },
+  nodePulseValue: { color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, flex: 1, textAlign: "right" },
   ztraceCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.violet, padding: 16, marginBottom: 14 },
   ztraceTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   ztraceGlyph: { color: COLORS.violet, fontSize: 22 },
