@@ -17,13 +17,15 @@ export function runTerminalCommand(input: string): DemoResult {
   const command = input.trim().toLowerCase();
   switch (command) {
     case "help":
-      return { output: "help   status   zlang\nzretro evidence deny", status: "READY", detail: "supported demo commands" };
+      return { output: "help   status   zlang\nzretro telecom evidence deny", status: "READY", detail: "supported demo commands" };
     case "status":
       return { output: "identity: guest\nmode: offline-first\nnetwork: denied\nstorage: ./workspace only", status: "READY", detail: "system posture inspected" };
     case "zlang":
       return { output: "ZLB2 v2.5\nemit profile: valid\nHALT: linked", status: "ACCEPTED", detail: "ZLB2 v2.5 · emit · HALT" };
     case "zretro":
       return { output: "Meteor Patrol\nIR: ready\nmanifest: prepared", status: "VERIFIED", detail: "IR READY · manifest prepared" };
+    case "telecom":
+      return { output: "ZCOMM / TELECOM\nprofile: ZLB2 telecom.local\nlink: LOCAL OBSERVATION\ntransmit: DENIED", status: "READY", detail: "telecom profile available" };
     case "evidence":
       return { output: "local receipts are available\nhash chain: linked", status: "READY", detail: "session receipts inspected" };
     case "deny":

@@ -10,7 +10,7 @@ Il layout assume **portrait 9:16**, uso con una mano e interazioni verticali. Le
 
 ### 1. Microcosm / Home
 
-La Home presenta il brand `ZDOS // MICROcosm`, il badge `OFFLINE BETA`, il pannello `SYSTEM POSTURE / READY` e i marker di sicurezza `LOCAL`, `NETWORK DENIED` e `READ-ONLY`. Sotto l’header compare una griglia verticale di cinque accessi rapidi: Terminale, Zlang Playground, ZRetro Studio, Evidence Chain e Security. Ogni card mostra titolo, breve descrizione, stato e un accento cromatico distinto.
+La Home presenta il brand `ZDOS // MICROcosm`, il badge `OFFLINE BETA`, il pannello `SYSTEM POSTURE / READY` e i marker di sicurezza `LOCAL`, `NETWORK DENIED` e `READ-ONLY`. Sotto l’header compare una griglia verticale di sette accessi implementati: Terminale, Zlang Playground, ZRetro Studio, ZComm Telecom, Evidence Chain, Security e ZDOS Profile. Ogni card mostra titolo, breve descrizione, stato e un accento cromatico distinto. Node Pulse e Zchain Zliang restano superfici di riferimento roadmap finché non vengono implementate nel codice.
 
 La parte bassa della Home contiene una nota di contesto: la beta non esegue shell reali e tutte le operazioni sono demo locali. Le card devono avere un’area di tocco ampia, feedback di pressione con riduzione dell’opacità e una gerarchia leggibile anche su schermi stretti.
 
@@ -18,7 +18,7 @@ La parte bassa della Home contiene una nota di contesto: la beta non esegue shel
 
 La schermata mostra un header compatto con pulsante `‹ Torna al microcosmo`, titolo `LOCAL TERMINAL` e stato `PREVIEW ONLY`. Il pannello principale è un terminale monospace scuro con prompt `x@microcosm:~$`, cronologia breve e output ad alto contrasto. In fondo al pannello compare un campo di testo con tastiera di tipo terminale e pulsante di invio.
 
-I comandi supportati sono `help`, `status`, `zlang`, `zretro`, `evidence` e `deny`. Un comando sconosciuto riceve un rifiuto esplicito. Dopo ogni azione, la ricevuta generata è visibile come feedback sintetico sotto l’output, senza nascondere il prompt corrente.
+I comandi supportati sono `help`, `status`, `zlang`, `zretro`, `telecom`, `evidence` e `deny`. Un comando sconosciuto riceve un rifiuto esplicito. Dopo ogni azione, la ricevuta generata è visibile come feedback sintetico sotto l’output, senza nascondere il prompt corrente.
 
 ### 3. Zlang Playground
 
@@ -49,6 +49,10 @@ La UI deve comunicare con chiarezza che la catena è dimostrativa e vive nello s
 La schermata mostra il profilo `DEFAULT-DENY PROFILE` e quattro righe di capability: `Network — DENIED`, `Storage — ./workspace only`, `Execution — PREVIEW ONLY`, `Identity — guest`. Un pannello introduttivo spiega che tutto ciò che non è espressamente previsto viene rifiutato o indicato come roadmap.
 
 La schermata termina con una nota sui confini della beta: niente socket, shell Android, accesso libero al filesystem o rete automatica. Il tono deve restare informativo e rassicurante, con la sicurezza rappresentata come comportamento osservabile dell’interfaccia.
+
+### 7. ZDOS Profile
+
+La schermata `ZDOS PROFILE` espone l’identità del profilo, la postura `DEFAULT-DENY`, il binding descrittivo del nodo e il fingerprint locale ZTRACE. Il binding resta `IDENTIFIED / UNLINKED` finché non viene configurato un trasporto autenticato.
 
 ## Flussi chiave
 
@@ -84,6 +88,15 @@ La schermata termina con una nota sui confini della beta: niente socket, shell A
 4. L’app mostra `VERIFIED` e `IR READY · manifest prepared`.
 5. La ricevuta è consultabile nella Evidence Chain.
 
+### Esecuzione del profilo telecom
+
+1. L’utente apre `ZComm Telecom` dalla Home.
+2. Visualizza `LOCAL`, `UHF FIXTURE` e `DENIED TX`.
+3. Modifica il programma Zlang nell’editor.
+4. Tocca `RUN LOCAL PROFILE`.
+5. L’interprete controlla allowlist, `telecom.status` e `halt`.
+6. L’app mostra il risultato e registra una receipt nella Evidence Chain.
+
 ### Ispezione della sicurezza
 
 1. L’utente apre `Security` dalla Home.
@@ -116,3 +129,36 @@ Tutte le schermate usano il contenitore safe-area comune. Il contenuto scorre ve
 ## Confini intenzionali della beta
 
 L’app non deve richiedere account, backend, cloud sync, rete, database remoto o autenticazione. Non deve lanciare programmi Android, eseguire shell reali, aprire socket, accedere liberamente al filesystem, eseguire binari retro, incorporare emulatori o fingere una Evidence Chain crittografica persistente. Le parti future devono essere etichettate `ROADMAP` e non devono apparire come azioni disponibili.
+
+
+### 7. ZComm Telecom
+
+La nuova superficie `ZCOMM TELECOM` è il primo tool telecomunicazioni del Microcosm. L’header mostra il profilo `ZLANG TOOL · LOCAL OBSERVATION`, mentre il pannello principale evidenzia `OBSERVE ONLY`, `LOCAL LINK`, fixture `UHF` e `DENIED TX`.
+
+L’editor contiene un programma Zlang locale composto da `telecom.status`, `telecom.scan band=uhf`, `telecom.route inspect`, `telecom.tx deny` e `halt`. Il CTA `RUN LOCAL PROFILE` interpreta soltanto questa allowlist. Un programma valido produce `ACCEPTED`, un receipt `telecom.zlang` e un output che dichiara esplicitamente l’assenza di operazioni radio, socket o rete.
+
+Il tool non è uno scanner RF, un modem, un client SIP o un trasmettitore. Qualunque comando per aprire socket, selezionare un device radio, inviare pacchetti o trasmettere viene rifiutato dal profilo default-deny senza tentare l’operazione.
+
+### Flusso ZComm Telecom
+
+1. L’utente apre `ZComm Telecom` dalla Home.
+2. Visualizza la postura `LOCAL / UHF FIXTURE / DENIED TX`.
+3. Modifica il programma Zlang nell’editor.
+4. Tocca `RUN LOCAL PROFILE`.
+5. L’interprete controlla allowlist, `telecom.status` e `halt`.
+6. L’app mostra il risultato e registra una receipt nella Evidence Chain.
+
+## Registro delle superfici
+
+| ID | Superficie | Stato corrente |
+|---|---|---|
+| 01 | Terminale locale | Implementata |
+| 02 | Zlang Playground | Implementata |
+| 03 | ZRetro Studio | Implementata |
+| 04 | Evidence Chain | Implementata |
+| 05 | Security | Implementata |
+| 06 | ZDOS Profile | Implementata |
+| 07 | ZComm Telecom | Implementata, locale e read-only |
+| 08–09 | Node Pulse e Zchain Zliang | Roadmap/UI di riferimento |
+
+La registrazione delle superfici deve distinguere sempre tra implementazione effettiva, simulazione locale e roadmap visuale.
