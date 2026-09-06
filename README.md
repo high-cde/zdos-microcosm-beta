@@ -1,10 +1,16 @@
 # ZDOS Microcosm Beta
 
-ZDOS Microcosm Beta è un’app mobile Expo/React Native offline-first, orientata ad Android e pensata come laboratorio didattico per l’ecosistema ZDOS. L’esperienza include un terminale locale dimostrativo, un playground Zlang, uno studio ZRetro, una Evidence Chain di sessione e una matrice Security basata su un profilo `DEFAULT-DENY`.
+ZDOS Microcosm Beta è un’app mobile Expo/React Native offline-first, orientata ad Android e pensata come laboratorio didattico per l’ecosistema ZDOS. L’esperienza include un micro terminale esclusivamente Zlang in stile Termux, un terminale locale dimostrativo, un playground Zlang, un profilo Zchain read-only con configurazione Orbot, Node Pulse per heartbeat HTTPS, uno studio ZRetro, una Evidence Chain di sessione e una matrice Security basata su un profilo `DEFAULT-DENY`.
+
+## Release beta.4
+
+La release `v1.0.0-beta.4` aggiunge il **Zlang Micro Terminal**, limitato alle istruzioni `help` e `emit <testo>`, senza shell Android, processi, rete o accesso libero al filesystem. Include inoltre le superfici **Zchain Zlang** read-only, **Node Pulse** e la configurazione EAS per APK Android installabile.
+
+**APK Android:** [scarica l’ultima build Expo](https://expo.dev/artifacts/eas/k3TFfOXCtuww-_GiqXKDuyV-nIbwqGpKA_FrQWoeEOU.apk)
 
 ## Limiti intenzionali
 
-La beta non è una shell Android general-purpose. Non esegue programmi o comandi reali, non apre socket, non accede liberamente al filesystem, non usa account o backend remoti e non include compilatori nativi, emulatori o ROM retro. Le ricevute sono mantenute nello stato React della sessione e la loro persistenza locale è una possibile estensione futura.
+La beta non è una shell Android general-purpose. Il micro terminale accetta esclusivamente il profilo Zlang e non esegue programmi o comandi reali. L’app non apre socket, non accede liberamente al filesystem, non usa account o backend remoti e non include compilatori nativi, emulatori o ROM retro. Zchain è read-only: signing e broadcast sono disabilitati. Orbot è solo un endpoint SOCKS5 configurabile e non viene avviato o controllato dall’app. Le ricevute sono mantenute nello stato React della sessione e la loro persistenza locale è una possibile estensione futura.
 
 ## Stack
 
