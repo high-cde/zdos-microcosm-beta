@@ -56,14 +56,14 @@ jobs:
       - name: Generate native Android project
         run: npx expo prebuild --platform android --non-interactive --no-install
 
-      - name: Build debug APK
+      - name: Build standalone release APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: zdos-microcosm-${{ github.sha }}-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: zdos-microcosm-${{ github.sha }}-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
