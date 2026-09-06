@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { appendEvidence, createLocalChain, verifyChain, type ZChainEntry } from "@/lib/zchain";
+import { classifyNodeStatus, fetchNodeStatus, type NodeStatusPayload, type RemoteNodeState } from "@/lib/node-status";
 
 type ProjectId = "zdos" | "zlang";
 
@@ -102,6 +103,8 @@ export default function HomeScreen() {
   const [selected, setSelected] = useState<ProjectId | null>(null);
   const [chain, setChain] = useState<ZChainEntry[]>([]);
   const [chainValid, setChainValid] = useState(false);
+  const [remoteNode, setRemoteNode] = useState<NodeStatusPayload | null>(null);
+  const [remoteNodeState, setRemoteNodeState] = useState<RemoteNodeState>("OFFLINE");
   const project = PROJECTS.find((item) => item.id === selected) ?? null;
 
   useEffect(() => {
@@ -113,6 +116,28 @@ export default function HomeScreen() {
     });
     return () => {
       mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const refresh = async () => {
+      try {
+        const payload = await fetchNodeStatus();
+        if (!mounted) return;
+        setRemoteNode(payload);
+        setRemoteNodeState(classifyNodeStatus(payload));
+      } catch {
+        if (!mounted) return;
+        setRemoteNode(null);
+        setRemoteNodeState("OFFLINE");
+      }
+    };
+    void refresh();
+    const timer = setInterval(() => void refresh(), 30000);
+    return () => {
+      mounted = false;
+      clearInterval(timer);
     };
   }, []);
 
@@ -164,7 +189,28 @@ export default function HomeScreen() {
             <View><Text style={styles.markerValue}>LOCAL</Text><Text style={styles.markerCaption}>CHAIN</Text></View>
             <View><Text style={styles.markerValue}>DENIED</Text><Text style={styles.markerCaption}>NETWORK</Text></View>
           </View>
-          <Text style={styles.chainNote}>Ledger non monetario, append-only e verificato offline. Nessun nodo remoto viene contattato.</Text>
+          <Text style={styles.chainNote}>Ledger non monetario, append-only e verificato offline. La presenza remota è mostrata separatamente e in sola lettura.</Text>
+        </View>
+
+        <View style={styles.remoteCard}>
+          <View style={styles.chainHeader}>
+            <View>
+              <Text style={styles.smallLabel}>REMOTE NODE / CORE-01</Text>
+              <Text style={styles.chainTitle}>PRESENCE · {remoteNodeState}</Text>
+            </View>
+            <Text style={[styles.chainStatus, { color: remoteNodeState === "ONLINE" ? COLORS.lime : COLORS.violet }]}>
+              {remoteNodeState === "ONLINE" ? "ONLINE" : remoteNodeState}
+            </Text>
+          </View>
+          <View style={styles.rule} />
+          <View style={styles.chainMetrics}>
+            <View><Text style={styles.markerValue}>{remoteNode?.node_id ?? "CORE-01"}</Text><Text style={styles.markerCaption}>NODE ID</Text></View>
+            <View><Text style={styles.markerValue}>{remoteNode?.policy ?? "DEFAULT-DENY"}</Text><Text style={styles.markerCaption}>POLICY</Text></View>
+            <View><Text style={styles.markerValue}>{remoteNode?.execution ?? "HEARTBEAT-ONLY"}</Text><Text style={styles.markerCaption}>EXECUTION</Text></View>
+          </View>
+          <Text style={styles.chainNote}>
+            {remoteNode ? `Heartbeat ${new Date(remoteNode.heartbeat_at).toLocaleTimeString()} · LOCAL HASH ATTESTATION` : "Nessuna attestazione remota ricevuta; il profilo locale resta disponibile."}
+          </Text>
         </View>
 
         <View style={styles.sectionRow}>
@@ -213,7 +259,8 @@ const styles = StyleSheet.create({
   title: { color: COLORS.ink, fontSize: 42, fontWeight: "900", letterSpacing: -1, lineHeight: 48 },
   subtitle: { color: COLORS.muted, fontSize: 15, lineHeight: 22, marginTop: 7, marginBottom: 22, maxWidth: 320 },
   postureCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 18, marginBottom: 18 },
-  chainCard: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.line, padding: 18, marginBottom: 28 },
+  chainCard: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.line, padding: 18, marginBottom: 18 },
+  remoteCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.cyan, padding: 18, marginBottom: 28 },
   chainHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   chainTitle: { color: COLORS.ink, fontSize: 17, fontWeight: "900", marginTop: 5 },
   chainStatus: { fontSize: 10, fontWeight: "900", letterSpacing: 1 },
