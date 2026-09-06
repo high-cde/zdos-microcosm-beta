@@ -21,8 +21,9 @@ import {
   type ReceiptStatus,
 } from "@/lib/zdos-demo";
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "@/lib/zdos-node";
+import { runTelecomZlang, telecomZlangTemplate } from "@/lib/zdos-telecom";
 
-type Surface = "home" | "terminal" | "zlang" | "zretro" | "evidence" | "security" | "profile";
+type Surface = "home" | "terminal" | "zlang" | "zretro" | "telecom" | "evidence" | "security" | "profile";
 
 type TerminalEntry = {
   id: string;
@@ -78,6 +79,14 @@ const MENU_CARDS: MenuCard[] = [
     description: "Prepara una preview IR per Meteor Patrol.",
     status: "VERIFIED",
     accent: COLORS.violet,
+  },
+  {
+    id: "telecom",
+    index: "07",
+    title: "ZComm Telecom",
+    description: "Osserva un profilo telecom Zlang senza trasmettere o aprire socket.",
+    status: "READY",
+    accent: COLORS.cyan,
   },
   {
     id: "evidence",
@@ -389,6 +398,65 @@ function ZlangSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (r
   );
 }
 
+function TelecomSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
+  const [source, setSource] = useState(telecomZlangTemplate());
+  const [result, setResult] = useState<ReturnType<typeof runTelecomZlang> | null>(null);
+
+  const execute = () => {
+    const nextResult = runTelecomZlang(source);
+    setResult(nextResult);
+    onReceipt({ operation: "telecom.zlang", status: nextResult.status, detail: nextResult.detail });
+  };
+
+  return (
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.telecomFlex}>
+      <ScrollView contentContainerStyle={styles.surfaceContent} keyboardShouldPersistTaps="handled">
+        <SurfaceHeader title="ZCOMM TELECOM" eyebrow="ZLANG TOOL · LOCAL OBSERVATION" onBack={onBack} />
+        <View style={styles.telecomHero}>
+          <View style={styles.telecomHeroTop}>
+            <View>
+              <Text style={styles.microLabel}>TELECOMMUNICATIONS PROFILE</Text>
+              <Text style={styles.telecomTitle}>OBSERVE ONLY</Text>
+            </View>
+            <StatusBadge status="READY" />
+          </View>
+          <Text style={styles.telecomDescription}>
+            Un primo tool Zlang per leggere una fixture di collegamento telecom senza radio, socket, rete o trasmissione.
+          </Text>
+          <View style={styles.telecomGrid}>
+            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>LOCAL</Text><Text style={styles.telecomGridLabel}>LINK</Text></View>
+            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>UHF</Text><Text style={styles.telecomGridLabel}>FIXTURE</Text></View>
+            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>DENIED</Text><Text style={styles.telecomGridLabel}>TX</Text></View>
+          </View>
+        </View>
+        <Text style={styles.inputLabel}>ZLANG TELECOM PROGRAM</Text>
+        <TextInput
+          multiline
+          value={source}
+          onChangeText={setSource}
+          autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
+          style={styles.telecomCodeInput}
+        />
+        <Pressable onPress={execute} style={({ pressed }) => [styles.telecomButton, pressed && styles.telecomButtonPressed]}>
+          <Text style={styles.telecomButtonText}>RUN LOCAL PROFILE</Text>
+          <Text style={styles.telecomButtonArrow}>↗</Text>
+        </Pressable>
+        {result ? (
+          <View style={styles.telecomResultCard}>
+            <View style={styles.resultHeaderRow}><Text style={styles.resultEyebrow}>ZCOMM RECEIPT</Text><StatusBadge status={result.status} /></View>
+            <Text selectable style={styles.telecomOutput}>{result.output}</Text>
+            <Text style={styles.receiptLink}>local receipt · no network operation attempted</Text>
+          </View>
+        ) : (
+          <View style={styles.telecomNote}><Text style={styles.telecomNoteText}>Supported profile: status · scan band=uhf · route inspect · tx deny · halt</Text></View>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
 function ZretroSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
   const [manifest, setManifest] = useState("project Meteor Patrol\nscreen 320 200\nscene courtyard");
   const [previewed, setPreviewed] = useState(false);
@@ -595,6 +663,7 @@ export default function MicrocosmScreen() {
   if (surface === "terminal") return <TerminalSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "zlang") return <ZlangSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "zretro") return <ZretroSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
+  if (surface === "telecom") return <TelecomSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "evidence") return <EvidenceSurface onBack={() => setSurface("home")} receipts={receipts} />;
   if (surface === "security") return <SecuritySurface onBack={() => setSurface("home")} />;
   if (surface === "profile") return <ProfileSurface onBack={() => setSurface("home")} receiptCount={receipts.length} />;
@@ -779,4 +848,25 @@ const styles = StyleSheet.create({
   boundaryText: { color: COLORS.ink, fontSize: 13, lineHeight: 20, marginTop: 10 },
   boundaryRule: { height: 1, backgroundColor: COLORS.line, marginVertical: 14 },
   boundaryFoot: { color: COLORS.amber, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10 },
+  telecomFlex: { flex: 1 },
+  telecomHero: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.cyan, padding: 16, marginBottom: 22 },
+  telecomHeroTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
+  telecomTitle: { color: COLORS.cyan, fontSize: 25, fontWeight: "800", letterSpacing: 0.5, marginTop: 8 },
+  telecomDescription: { color: COLORS.muted, fontSize: 12, lineHeight: 18, marginTop: 15 },
+  telecomGrid: { flexDirection: "row", borderTopWidth: 1, borderTopColor: COLORS.line, marginTop: 16, paddingTop: 14 },
+  telecomGridItem: { flex: 1 },
+  telecomGridValue: { color: COLORS.ink, fontSize: 13, fontWeight: "800" },
+  telecomGridLabel: { color: COLORS.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.1, marginTop: 5 },
+  inputLabel: { color: COLORS.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1.2, marginBottom: 9 },
+  telecomCodeInput: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.cyan, color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 12, lineHeight: 20, minHeight: 150, padding: 14, textAlignVertical: "top" },
+  telecomButton: { minHeight: 52, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: COLORS.cyan, paddingHorizontal: 16, marginTop: 12, marginBottom: 18 },
+  telecomButtonPressed: { opacity: 0.82, transform: [{ scale: 0.985 }] },
+  telecomButtonText: { color: COLORS.void, fontSize: 12, fontWeight: "900", letterSpacing: 1.1 },
+  telecomButtonArrow: { color: COLORS.void, fontSize: 20, fontWeight: "700" },
+  telecomResultCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.lime, padding: 14, marginBottom: 14 },
+  resultHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 15 },
+  resultEyebrow: { color: COLORS.lime, fontSize: 10, fontWeight: "800", letterSpacing: 1.4 },
+  telecomOutput: { color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 11, lineHeight: 18 },
+  telecomNote: { borderLeftWidth: 2, borderLeftColor: COLORS.amber, marginTop: 18, paddingLeft: 14 },
+  telecomNoteText: { color: COLORS.muted, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, lineHeight: 17 },
 });
