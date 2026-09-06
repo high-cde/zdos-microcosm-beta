@@ -15,7 +15,8 @@
 | Session | LOCAL |
 | Network | DENIED |
 | Storage | READ-ONLY |
-| Superfici disponibili | 09 |
+| Superfici nel catalogo documentato | 10 (00–09) |
+| Superfici implementate nel codice | 07, inclusa ZComm Telecom |
 | Session receipts | 02 nella schermata di riferimento |
 | Esecuzione remota | Non configurata |
 | Shell general-purpose | Non disponibile |
@@ -47,7 +48,14 @@ La logica dimostrativa è concentrata in `lib/zdos-demo.ts` e definisce un insie
 
 ### Zlang Micro Terminal
 
-Il terminale riconosce soltanto comandi appartenenti al profilo demo. Gli input sconosciuti vengono rifiutati con `DENIED`; non vengono passati a una shell del sistema operativo.
+Il terminale riconosce soltanto comandi appartenenti al profilo demo. Gli input sconosciuti vengono rifiutati con `DENIED`; non vengono passati a una shell del sistema operativo. Il comando `telecom` apre il riferimento al profilo ZComm Telecom e restituisce una postura locale con trasmissione negata.
+
+Il catalogo corrente è:
+
+```text
+help   status   zlang
+zretro telecom evidence deny
+```
 
 ### Zlang Validator
 
@@ -118,7 +126,7 @@ Il progetto usa Expo Router per il routing, React Native/TypeScript per l’appl
 | `lib/trpc.ts` | Client tRPC e collegamento al backend. |
 | `server/` | Router, autenticazione e servizi infrastrutturali. |
 | `drizzle/` | Schema e migrazioni MySQL. |
-| `tests/` | Test dei contratti demo e dell’autenticazione. |
+| `tests/` | Test dei contratti demo, telecom e autenticazione. |
 | `docs/screenshots/` | Screenshot di riferimento della UI. |
 
 ## Sicurezza e limiti intenzionali
@@ -156,6 +164,13 @@ Per verificare i tipi TypeScript:
 pnpm exec tsc --noEmit
 ```
 
+Il controllo completo del repository può essere eseguito con:
+
+```bash
+pnpm check
+pnpm lint
+```
+
 Il bundle JavaScript Android già esportato localmente si trova in `dist-android/` e può essere rigenerato con:
 
 ```bash
@@ -166,7 +181,7 @@ La generazione di un APK nativo richiede un ambiente Android SDK/Gradle configur
 
 ## Direzione del progetto
 
-Le evoluzioni naturali del microcosmo sono la persistenza delle receipt, un audit log server-side, capability grant/revoke espliciti, test end-to-end per OAuth e una definizione formale del modello di minaccia prima di qualsiasi attivazione del trasporto remoto.
+Le evoluzioni naturali del microcosmo sono la persistenza delle receipt, un audit log server-side, capability grant/revoke espliciti, test end-to-end per OAuth, l’eventuale estensione della navigazione alle superfici roadmap e una definizione formale del modello di minaccia prima di qualsiasi attivazione del trasporto remoto. Il modulo telecom deve restare locale e read-only finché non esiste una revisione separata del profilo di sicurezza.
 
 Fino ad allora, ZDOS // MICROcosm resta ciò che dichiara di essere: **una piccola, controllata e osservabile area di esperimenti ZDOS**.
 

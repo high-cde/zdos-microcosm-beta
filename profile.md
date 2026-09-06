@@ -38,3 +38,29 @@ La firma non invia dati, non identifica l’utente e non sostituisce una verific
 ## Regole di sicurezza
 
 Il profilo non deve contenere backdoor, comportamenti nascosti o “conoscenza” non documentata che modifichi i permessi. Le funzioni avanzate devono essere osservabili nell’interfaccia, coperte da test e accompagnate da una ricevuta locale. Qualsiasi bridge remoto deve essere esplicito, autenticato, read-only per impostazione predefinita e disattivabile senza perdere i dati locali.
+
+
+## Profilo ZComm Telecom
+
+`ZComm Telecom` è un interprete locale del profilo `ZLB2 telecom.local`. La sua funzione è didattica: rende osservabile una fixture di collegamento telecom senza stabilire un link reale.
+
+| Capability | Stato | Significato |
+|---|---|---|
+| `telecom.status` | Allowlist | Legge la postura locale del profilo. |
+| `telecom.scan` | Allowlist simulata | Legge la fixture UHF locale; non scansiona lo spettro reale. |
+| `telecom.route.inspect` | Allowlist read-only | Mostra il percorso senza selezionare carrier o endpoint. |
+| `telecom.tx` | Denied | Nessuna trasmissione, socket o invio di pacchetti. |
+
+Un programma telecom valido deve contenere `telecom.status` e `halt`. La superficie registra una receipt `telecom.zlang` per ogni esecuzione, inclusi i rifiuti. Il parser non interpreta comandi oltre l’allowlist e non accede a modem, radio, interfacce di rete o dispositivi del sistema operativo.
+
+Il contratto di riferimento è:
+
+```zlang
+telecom.status
+telecom.scan band=uhf
+telecom.route inspect
+telecom.tx deny
+halt
+```
+
+Il risultato atteso è `ACCEPTED`, con postura `LOCAL OBSERVATION`, route `READ-ONLY` e `transmit: DENIED`. L’estensione di questo profilo a reti reali richiederebbe un modello di minaccia, permessi espliciti, autenticazione, audit e un’ulteriore revisione del contratto.

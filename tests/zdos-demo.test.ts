@@ -13,6 +13,15 @@ describe("ZDOS local demo contracts", () => {
     expect(result.output).toContain("storage: ./workspace only");
   });
 
+  it("exposes the telecom tool from the bounded terminal catalog", () => {
+    const help = runTerminalCommand("help");
+    const telecom = runTerminalCommand("telecom");
+
+    expect(help.output).toContain("telecom");
+    expect(telecom.status).toBe("READY");
+    expect(telecom.output).toContain("transmit: DENIED");
+  });
+
   it("accepts the supported Zlang emit profile", () => {
     const result = validateZlang("emit ZDOS risponde");
 
