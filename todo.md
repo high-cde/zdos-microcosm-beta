@@ -35,3 +35,19 @@
 - [x] Add a documented advanced “magic” layer with deterministic local diagnostics and traceable receipts
 - [ ] Attach the recognized private ZDOS node only after confirming its identity and supported access method
 - [x] Test the extended profile and synchronize the changes to the private GitHub repository
+
+## ZComm Telecom
+
+- [x] Aggiungere il profilo locale `ZLB2 telecom.local`
+- [x] Implementare `telecom.status`, `telecom.scan band=uhf`, `telecom.route inspect`, `telecom.tx deny` e `halt`
+- [x] Aggiungere la superficie UI ZComm Telecom con editor e output osservabile
+- [x] Collegare le esecuzioni alla Evidence Chain tramite receipt `telecom.zlang`
+- [x] Aggiungere test per percorso valido, sintassi non supportata e requisito `HALT`
+- [ ] Valutare una persistenza locale delle receipt senza introdurre sincronizzazione remota
+- [ ] Definire, in una revisione separata, eventuali integrazioni radio o di rete reali; nessuna è autorizzata nella beta attuale
+
+## Coerenza repository
+
+- [x] Allineare il comando `help` del terminale al catalogo corrente includendo `telecom`
+- [x] Documentare la distinzione tra superfici implementate, simulate e roadmap
+- [ ] Riattivare il test di logout quando il flusso auth sarà stabilizzato

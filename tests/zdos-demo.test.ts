@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { computeZtrace, createReceipt, previewZretro, runTerminalCommand, validateZlang } from "../lib/zdos-demo";
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "../lib/zdos-node";
+import { runTelecomZlang, telecomZlangTemplate } from "../lib/zdos-telecom";
 
 describe("ZDOS local demo contracts", () => {
   it("returns the bounded system status without executing a shell", () => {
@@ -10,6 +11,15 @@ describe("ZDOS local demo contracts", () => {
     expect(result.status).toBe("READY");
     expect(result.output).toContain("network: denied");
     expect(result.output).toContain("storage: ./workspace only");
+  });
+
+  it("exposes the telecom tool from the bounded terminal catalog", () => {
+    const help = runTerminalCommand("help");
+    const telecom = runTerminalCommand("telecom");
+
+    expect(help.output).toContain("telecom");
+    expect(telecom.status).toBe("READY");
+    expect(telecom.output).toContain("transmit: DENIED");
   });
 
   it("accepts the supported Zlang emit profile", () => {
@@ -53,6 +63,29 @@ describe("ZDOS local demo contracts", () => {
     expect(first).toBe(second);
     expect(first).toMatch(/^ZTRACE-[0-9A-F]{8}$/);
     expect(computeZtrace("profile", 4)).not.toBe(first);
+  });
+
+  it("accepts the bounded telecom Zlang profile without performing network operations", () => {
+    const result = runTelecomZlang(telecomZlangTemplate());
+
+    expect(result.status).toBe("ACCEPTED");
+    expect(result.output).toContain("link: LOCAL OBSERVATION");
+    expect(result.output).toContain("transmit: DENIED");
+    expect(result.detail).toBe("ZLB2 telecom.local · observe · HALT");
+  });
+
+  it("denies telecom syntax outside the supported profile", () => {
+    const result = runTelecomZlang("telecom.open socket=radio0\ntelecom.tx send");
+
+    expect(result.status).toBe("DENIED");
+    expect(result.output).toContain("No radio, socket or network operation attempted.");
+  });
+
+  it("requires an explicit HALT in the telecom profile", () => {
+    const result = runTelecomZlang("telecom.status");
+
+    expect(result.status).toBe("DENIED");
+    expect(result.detail).toBe("telecom profile requires status and HALT");
   });
 
   it("recognizes the enrolled VPS metadata without enabling remote execution", () => {
