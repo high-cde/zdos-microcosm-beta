@@ -6,7 +6,9 @@ ZDOS Microcosm è un’app mobile Expo/React Native offline-first, orientata ad 
 
 La release `v1.0.0` include **ZComm Videotel**, un sottosistema nativo concettuale con griglia CEPT 40×24, contratto `videotex.zlang`, navigazione `*Pagina#`, attestazione locale e canale Z-Modem/V.23 emulato senza socket. Include inoltre il **Zlang Micro Terminal**, le **Zlang Capsules**, le superfici **Zchain Zlang** read-only, **Node Pulse** e la configurazione EAS per APK Android installabile.
 
-**APK Android:** sarà allegato alla release GitHub `v1.0.0` dopo la build EAS stabile.
+**APK Android:** [scarica la release stabile 1.0.0](https://github.com/high-cde/zdos-microcosm-beta/releases/download/v1.0.0/zdos-microcosm-1.0.0.apk)
+
+**Documentazione ZComm:** [ZComm Z-Videotex](docs/zcomm-videotex.md)
 
 ## Limiti intenzionali
 
@@ -47,6 +49,7 @@ La generazione di un APK nativo richiede un ambiente Android SDK/Gradle configur
 | `lib/zdos-node.ts` | Metadati non-segreti del nodo pubblico reale |
 | `lib/zcomm-videotex.ts` | Contratto ZComm Z-Videotex e navigazione `*Pagina#` |
 | `zlang/videotex.zlang` | Specifica sorgente ZLB2 v2.5 del terminale Videotel |
+| `docs/zcomm-videotex.md` | Specifica tecnica, sicurezza e navigazione ZComm |
 | `tests/zdos-demo.test.ts` | Test unitari del comportamento demo |
 | `app.config.ts` | Nome, slug, orientamento, package Android e branding |
 | `assets/images/` | Icona, splash, favicon e foreground adaptive icon |
