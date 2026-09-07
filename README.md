@@ -15,8 +15,8 @@
 | Session | LOCAL |
 | Network | DENIED by default; HTTPS sync optional |
 | Storage | LOCAL PERSISTENT QUEUE |
-| Superfici nel catalogo documentato | 10 (00–09) |
-| Superfici implementate nel codice | 07, inclusa ZComm Videotel |
+| Superfici nel catalogo documentato | 11 (00–10) |
+| Superfici implementate nel codice | 08, incluse ZComm Videotel e MECCANINCAME |
 | Session receipts | Locali e receipt-linked |
 | Esecuzione remota | Non configurata |
 | Shell general-purpose | Non disponibile |
@@ -38,8 +38,8 @@ La schermata principale presenta un catalogo di superfici locali. Ogni superfici
 | **06 — ZDOS Profile** | ROADMAP | Presenta identità, policy attiva e binding del nodo privato. |
 | **07 — Node Pulse** | READY | Mostra un heartbeat pubblico read-only del nodo First Node core-01. |
 | **08 — Zchain Zliang** | ROADMAP | Prevede la lettura blockchain read-only con profilo Orbot opzionale. |
-| **09 — ZComm Videotel** | EXPERIMENTAL | Messaggeria 40×24 local-first in Zlang, con coda offline e sync HTTPS allowlisted. |
-| **08 — MECCANINCAME** | READY | Pairing locale in stile KDE Connect, implementato come profilo Zlang bounded; rete e shell negate. |
+| **09 — ZComm Videotel** | EXPERIMENTAL | Messaggeria 40×24 local-first in Zlang, con coda offline, antenna First Node e CB realtime `wss://` opzionale. |
+| **10 — MECCANINCAME** | READY | Pairing locale in stile KDE Connect, implementato come profilo Zlang bounded; rete e shell negate. |
 
 ![ZDOS Microcosm — surfaces](docs/screenshots/microcosm-surfaces.jpg)
 
@@ -131,7 +131,8 @@ Il progetto usa Expo Router per il routing, React Native/TypeScript per l’appl
 | `components/` | Componenti visuali riutilizzabili e tematizzati. |
 | `lib/zdos-demo.ts` | Contratti locali per terminale, validazione, preview e receipt. |
 | `lib/zdos-telecom.ts` | Interprete legacy bounded mantenuto per compatibilità del terminale. |
-| `lib/zdos-zcomm.ts` | Runtime ZComm Videotel: profilo Zlang, stanze, coda offline e sync HTTPS. |
+| `lib/zdos-zcomm.ts` | Runtime ZComm Videotel: profilo Zlang, stanze, coda offline, sync HTTPS e client CB realtime `wss://`. |
+| `lib/zdos-meccanincame.ts` | Pairing locale bounded in stile KDE Connect, senza rete o shell. |
 | `lib/zdos-node.ts` | Profilo descrittivo del nodo ZDOS. |
 | `lib/trpc.ts` | Client tRPC e collegamento al backend. |
 | `server/` | Router, autenticazione e servizi infrastrutturali. |
@@ -157,7 +158,7 @@ ZComm può osservare il servizio VPS `zdos-first-node.service` come **antenna co
 
 Un endpoint assente, non HTTPS, non raggiungibile o non verificabile produce `NOT_CONFIGURED`, `DENIED` o `OFFLINE`; in tutti i casi la coda locale resta disponibile. Il bridge non abilita shell remota, socket generici, filesystem remoto o esecuzione di comandi. L’invio dei messaggi resta separato e richiede l’endpoint HTTPS esplicito `EXPO_PUBLIC_ZCOMM_SYNC_URL`.
 
-Per la versione web pubblicata su GitHub Pages, ZComm include anche un **CB realtime** tramite WebSocket sicuro. La variabile `EXPO_PUBLIC_ZCOMM_CB_WS_URL` deve contenere un relay `wss://` della VPS o di un servizio sotto il proprio controllo. Il client accetta soltanto frame JSON `zcomm.cb.message` con `roomId`, `nick`, `body` limitato a 240 caratteri e `createdAt`; URL `ws://`, frame malformati, shell e comandi arbitrari vengono negati. Il workflow Pages legge la variabile GitHub Actions `ZCOMM_CB_WS_URL` e non contiene endpoint o segreti hard-coded.
+Per la versione web pubblicata su GitHub Pages e per l’APK Android, ZComm include anche un **CB realtime** tramite WebSocket sicuro. La variabile `EXPO_PUBLIC_ZCOMM_CB_WS_URL` deve contenere un relay `wss://` della VPS o di un servizio sotto il proprio controllo. Il client accetta soltanto frame JSON `zcomm.cb.message` con `roomId`, `nick`, `body` limitato a 240 caratteri e `createdAt`; URL `ws://`, frame malformati, shell e comandi arbitrari vengono negati. I workflow Pages e APK leggono la variabile GitHub Actions `ZCOMM_CB_WS_URL` e non contengono endpoint o segreti hard-coded.
 
 Esempio di frame CB:
 
@@ -230,6 +231,10 @@ Consultare la licenza e le policy del repository per i termini di utilizzo del p
 La versione web viene pubblicata automaticamente su GitHub Pages a ogni aggiornamento di `main`:
 
 **https://high-cde.github.io/zdos-microcosm-beta/**
+
+### Build Android APK
+
+Il workflow `Android APK` esegue type-check, test, prebuild Expo e produce un APK release scaricabile dagli **Artifacts** della relativa GitHub Action. La build include il client CB, la coda offline e le policy Zlang default-deny. Per compilare l’APK già configurato verso il relay VPS, impostare nel repository la variabile Actions `ZCOMM_CB_WS_URL` con un URL `wss://`; senza variabile l’app resta offline-first e il pulsante CB mostra `DENIED`/`DISCONNECTED` senza tentare connessioni arbitrarie.
 
 L’app mobile resta configurata per Expo Android/iOS. Il canale ufficiale della collaborazione è **[La Nova Avon su WhatsApp](https://whatsapp.com/channel/0029Vb7akVkKAwEp2NjB0U0x)**; il nome è cliccabile direttamente dalla Home.
 

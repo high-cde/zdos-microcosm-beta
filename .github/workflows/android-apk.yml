@@ -18,6 +18,10 @@ jobs:
     name: build-apk
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      EXPO_PUBLIC_ZCOMM_CB_WS_URL: ${{ vars.ZCOMM_CB_WS_URL }}
+      EXPO_PUBLIC_ZCOMM_SYNC_URL: ${{ vars.ZCOMM_SYNC_URL }}
+      EXPO_PUBLIC_ZDOS_FIRST_NODE_URL: ${{ vars.ZDOS_FIRST_NODE_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
