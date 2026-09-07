@@ -83,8 +83,8 @@ const MENU_CARDS: MenuCard[] = [
   {
     id: "telecom",
     index: "07",
-    title: "ZComm Telecom",
-    description: "Osserva un profilo telecom Zlang senza trasmettere o aprire socket.",
+    title: "ZComm Videotel",
+    description: "Messaggeria 40×24 Zlang con coda offline e sync HTTPS opzionale.",
     status: "READY",
     accent: COLORS.cyan,
   },

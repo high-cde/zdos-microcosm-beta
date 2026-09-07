@@ -13,15 +13,15 @@
 | Release | Offline Beta |
 | System posture | READY |
 | Session | LOCAL |
-| Network | DENIED |
-| Storage | READ-ONLY |
+| Network | DENIED by default; HTTPS sync optional |
+| Storage | LOCAL PERSISTENT QUEUE |
 | Superfici nel catalogo documentato | 10 (00–09) |
-| Superfici implementate nel codice | 07, inclusa ZComm Telecom |
+| Superfici implementate nel codice | 07, inclusa ZComm Videotel |
 | Session receipts | 02 nella schermata di riferimento |
 | Esecuzione remota | Non configurata |
 | Shell general-purpose | Non disponibile |
 
-L’app è progettata per mantenere il perimetro locale e leggibile. Il profilo di default nega le capacità non dichiarate; non vengono eseguiti comandi shell arbitrari, non vengono aperte connessioni remote e il nodo privato mostrato nell’app è soltanto un’identità descrittiva finché il trasporto non viene configurato.
+L’app è progettata per mantenere il perimetro locale e leggibile. Il profilo di default nega le capacità non dichiarate; non vengono eseguiti comandi shell arbitrari. Il trasporto online è disattivato per default e può essere usato solo con un endpoint HTTPS esplicito; il nodo privato mostrato nell’app resta un’identità descrittiva.
 
 ## Microcosm surfaces
 
@@ -48,7 +48,7 @@ La logica dimostrativa è concentrata in `lib/zdos-demo.ts` e definisce un insie
 
 ### Zlang Micro Terminal
 
-Il terminale riconosce soltanto comandi appartenenti al profilo demo. Gli input sconosciuti vengono rifiutati con `DENIED`; non vengono passati a una shell del sistema operativo. Il comando `telecom` apre il riferimento al profilo ZComm Telecom e restituisce una postura locale con trasmissione negata.
+Il terminale riconosce soltanto comandi appartenenti al profilo demo. Gli input sconosciuti vengono rifiutati con `DENIED`; non vengono passati a una shell del sistema operativo. Il comando `telecom` mantiene un alias compatibile e apre il riferimento al profilo ZComm Videotel.
 
 Il catalogo corrente è:
 
@@ -123,7 +123,8 @@ Il progetto usa Expo Router per il routing, React Native/TypeScript per l’appl
 | `app/` | Schermate Expo Router, layout globale e callback OAuth. |
 | `components/` | Componenti visuali riutilizzabili e tematizzati. |
 | `lib/zdos-demo.ts` | Contratti locali per terminale, validazione, preview e receipt. |
-| `lib/zdos-telecom.ts` | Interprete bounded del profilo telecom Zlang locale. |
+| `lib/zdos-telecom.ts` | Interprete legacy bounded mantenuto per compatibilità del terminale. |
+| `lib/zdos-zcomm.ts` | Runtime ZComm Videotel: profilo Zlang, stanze, coda offline e sync HTTPS. |
 | `lib/zdos-node.ts` | Profilo descrittivo del nodo ZDOS. |
 | `lib/trpc.ts` | Client tRPC e collegamento al backend. |
 | `server/` | Router, autenticazione e servizi infrastrutturali. |
@@ -133,7 +134,7 @@ Il progetto usa Expo Router per il routing, React Native/TypeScript per l’appl
 
 ## Sicurezza e limiti intenzionali
 
-Il progetto adotta un modello **local by design**. La rete è negata nella postura mostrata, lo storage è read-only nella superficie principale e le capacità non dichiarate vengono negate. Questi limiti sono parte del comportamento previsto della beta, non errori di configurazione.
+Il progetto adotta un modello **local by design**. La rete è negata nella postura mostrata, mentre i messaggi ZComm vengono salvati localmente in una coda persistente. Le capacità non dichiarate vengono negate. Questi limiti sono parte del comportamento previsto della beta, non errori di configurazione.
 
 `ZComm Videotel` è una messaggeria testuale local-first: non sostituisce un modem, uno scanner RF, un client SIP, una radio o un sistema di monitoraggio di rete. Per abilitare il trasporto online impostare `EXPO_PUBLIC_ZCOMM_SYNC_URL` a un endpoint HTTPS sotto il proprio controllo; senza questa variabile l’app resta pienamente utilizzabile offline.
 
@@ -183,7 +184,7 @@ La generazione di un APK nativo richiede un ambiente Android SDK/Gradle configur
 
 ## Direzione del progetto
 
-Le evoluzioni naturali del microcosmo sono la persistenza delle receipt, un audit log server-side, capability grant/revoke espliciti, test end-to-end per OAuth, l’eventuale estensione della navigazione alle superfici roadmap e una definizione formale del modello di minaccia prima di qualsiasi attivazione del trasporto remoto. Il modulo telecom deve restare locale e read-only finché non esiste una revisione separata del profilo di sicurezza.
+Le evoluzioni naturali del microcosmo sono la persistenza delle receipt, un audit log server-side, capability grant/revoke espliciti, test end-to-end per OAuth, l’eventuale estensione della navigazione alle superfici roadmap e una definizione formale del modello di minaccia prima di ampliare il trasporto remoto. ZComm resta local-first: la sincronizzazione online non sostituisce la coda locale e non abilita shell, socket generici o trasmissioni radio.
 
 Fino ad allora, ZDOS // MICROcosm resta ciò che dichiara di essere: **una piccola, controllata e osservabile area di esperimenti ZDOS**.
 
