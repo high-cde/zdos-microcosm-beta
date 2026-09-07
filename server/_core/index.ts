@@ -8,6 +8,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { registerZcommRoutes } from "../zcomm";
+import { registerZdosNodeRoutes } from "../zdos-node";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -57,6 +58,7 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "256kb", extended: true }));
 
   registerZcommRoutes(app);
+  registerZdosNodeRoutes(app);
   registerStorageProxy(app);
   registerOAuthRoutes(app);
 

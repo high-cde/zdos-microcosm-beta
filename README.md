@@ -64,6 +64,8 @@ L’export produce il bundle JavaScript e i metadata Android. **Non produce da s
 | `android/` | Progetto Android nativo generato per la build release |
 | `server/zcomm.ts` | Route ZComm online testuali, policy e rate limit |
 | `docs/ZCOMM-ONLINE.md` | Contratto SIP/Videotel, Zlang e attivazione sicura |
+| `server/zdos-node.ts` | Contratto e connettore HTTPS read-only del nodo Zlang/ZDOS |
+| `docs/REAL-APP-NON-CRYPTO.md` | Capability reali e confini senza wallet/crypto |
 
 ## 🔒 Confini di sicurezza
 
@@ -85,7 +87,7 @@ La ZChain inclusa è un ledger di evidenza locale: non è una blockchain pubblic
 
 Il repository include un innesto server-side **ZComm online testuale**. Il contratto Videotel/SIP resta invariato: pagine numeriche, navigazione `*123#`, nickname, messaggeria e profilo 40×24. Zlang by ZDOS definisce il contratto `SIP-VIDEO-TEL V23 PAGE-40X24 DEFAULT-DENY HALT`.
 
-L’online è limitato a HTTPS/testo: niente modem, radio, socket dal client, trasmissioni, shell o esecuzione remota. Le route operative richiedono un bearer token, rate limit e sessione; CORS è chiuso per impostazione predefinita. Vedere [`docs/ZCOMM-ONLINE.md`](docs/ZCOMM-ONLINE.md).
+L’online è limitato a HTTPS/testo: niente modem, radio, socket dal client, trasmissioni, shell o esecuzione remota. Le route operative richiedono un bearer token, rate limit e sessione; CORS è chiuso per impostazione predefinita. Il nodo Zlang/ZDOS può essere collegato in sola lettura tramite URL HTTPS e token server-side. Vedere [`docs/ZCOMM-ONLINE.md`](docs/ZCOMM-ONLINE.md) e [`docs/REAL-APP-NON-CRYPTO.md`](docs/REAL-APP-NON-CRYPTO.md).
 
 ## 🔗 Connessioni univoche
 
