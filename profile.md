@@ -27,7 +27,7 @@ Il binding previsto è intenzionalmente ristretto a un nodo che esponga un’ide
 | Read model | Stato e ricevute possono essere letti; le azioni mutanti restano disabilitate |
 | Failure mode | Nodo non riconosciuto, non raggiungibile o non verificabile = nessun tentativo di collegamento |
 
-Il profilo ricevuto dalla VPS identifica il nodo come `vmi3082470.contaboserver.net`, con ID `ZNODE-FF0A135D12F83F61`, sistema `Ubuntu 22.04` e kernel `Linux 5.15.0-190-generic`. Il progetto espone quindi lo stato `IDENTIFIED / UNLINKED`: l’identità è registrata, ma non viene attivato alcun collegamento remoto perché il trasporto è ancora `not-configured`.
+Il progetto espone soltanto un profilo applicativo locale `IDENTIFIED / UNLINKED`. Non vengono memorizzati IP, hostname, fingerprint infrastrutturali, credenziali o metadati di server.
 
 ## ZTRACE — la “magia” trasparente
 
@@ -40,27 +40,30 @@ La firma non invia dati, non identifica l’utente e non sostituisce una verific
 Il profilo non deve contenere backdoor, comportamenti nascosti o “conoscenza” non documentata che modifichi i permessi. Le funzioni avanzate devono essere osservabili nell’interfaccia, coperte da test e accompagnate da una ricevuta locale. Qualsiasi bridge remoto deve essere esplicito, autenticato, read-only per impostazione predefinita e disattivabile senza perdere i dati locali.
 
 
-## Profilo ZComm Telecom
+## Profilo ZComm Videotel
 
-`ZComm Telecom` è un interprete locale del profilo `ZLB2 telecom.local`. La sua funzione è didattica: rende osservabile una fixture di collegamento telecom senza stabilire un link reale.
+`ZComm Videotel` è un interprete local-first del profilo `ZLB2 zcomm.local`. Traduce il modello storico delle messaggerie in pagine CEPT 40×24, stanze, nickname e messaggi. La coda locale funziona offline; il sync online è opzionale e vincolato a HTTPS.
 
 | Capability | Stato | Significato |
 |---|---|---|
-| `telecom.status` | Allowlist | Legge la postura locale del profilo. |
-| `telecom.scan` | Allowlist simulata | Legge la fixture UHF locale; non scansiona lo spettro reale. |
-| `telecom.route.inspect` | Allowlist read-only | Mostra il percorso senza selezionare carrier o endpoint. |
-| `telecom.tx` | Denied | Nessuna trasmissione, socket o invio di pacchetti. |
+| `zcomm.status` | Allowlist | Legge la postura locale del profilo. |
+| `zcomm.page.read` | Allowlist | Legge pagine e stanze locali. |
+| `zcomm.message.queue` | Allowlist | Accoda messaggi bounded sul dispositivo. |
+| `zcomm.sync.push` | Allowlist condizionata | Sincronizza solo verso un endpoint HTTPS esplicito. |
+| `zcomm.tx` | Denied | Nessuna radio, socket generico o trasmissione non autorizzata. |
 
-Un programma telecom valido deve contenere `telecom.status` e `halt`. La superficie registra una receipt `telecom.zlang` per ogni esecuzione, inclusi i rifiuti. Il parser non interpreta comandi oltre l’allowlist e non accede a modem, radio, interfacce di rete o dispositivi del sistema operativo.
+Un programma ZComm valido deve contenere `zcomm.status` e `halt`. La superficie registra receipt `zcomm.*` per esecuzioni, accodamenti e tentativi di sync, inclusi i rifiuti. Il parser non interpreta comandi oltre l’allowlist e non accede a shell, modem, radio o socket generici.
 
 Il contratto di riferimento è:
 
 ```zlang
-telecom.status
-telecom.scan band=uhf
-telecom.route inspect
-telecom.tx deny
+zcomm.status
+zcomm.page.list
+zcomm.room.list
+zcomm.message.queue
+zcomm.sync status
+zcomm.tx deny
 halt
 ```
 
-Il risultato atteso è `ACCEPTED`, con postura `LOCAL OBSERVATION`, route `READ-ONLY` e `transmit: DENIED`. L’estensione di questo profilo a reti reali richiederebbe un modello di minaccia, permessi espliciti, autenticazione, audit e un’ulteriore revisione del contratto.
+Il risultato atteso è `ACCEPTED`, con schermo `CEPT 40x24`, coda locale e `transmit: DENIED`. L’estensione a trasporti remoti richiede endpoint HTTPS esplicito, autenticazione, audit, retry idempotente e un’ulteriore revisione del contratto.

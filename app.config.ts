@@ -28,8 +28,8 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "ZDOS Microcosm Beta",
-  appSlug: "zdos-microcosm-beta",
+  appName: "ZDOS Microcosm · La Nova Avon",
+  appSlug: "zdos-microcosm-la-nova-avon",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
   logoUrl: "/manus-storage/zdos-microcosm-icon_7f78d0d1.png",
@@ -124,6 +124,7 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
+    baseUrl: "/zdos-microcosm-beta",
   },
 };
 

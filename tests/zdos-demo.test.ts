@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { computeZtrace, createReceipt, previewZretro, runTerminalCommand, validateZlang } from "../lib/zdos-demo";
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "../lib/zdos-node";
 import { runTelecomZlang, telecomZlangTemplate } from "../lib/zdos-telecom";
+import { emptyZCommState, queueZCommMessage, runZcommZlang } from "../lib/zdos-zcomm";
 
 describe("ZDOS local demo contracts", () => {
   it("returns the bounded system status without executing a shell", () => {
@@ -88,11 +89,32 @@ describe("ZDOS local demo contracts", () => {
     expect(result.detail).toBe("telecom profile requires status and HALT");
   });
 
-  it("recognizes the enrolled VPS metadata without enabling remote execution", () => {
+  it("recognizes only the local application profile without remote execution", () => {
     expect(nodeBindingState(PRIVATE_ZDOS_NODE)).toBe("IDENTIFIED");
-    expect(PRIVATE_ZDOS_NODE.nodeName).toBe("vmi3082470.contaboserver.net");
+    expect(PRIVATE_ZDOS_NODE.nodeName).toBe("local-app");
+    expect(PRIVATE_ZDOS_NODE.nodeId).toBe("LOCAL-APP");
     expect(PRIVATE_ZDOS_NODE.transport).toBe("not-configured");
     expect(PRIVATE_ZDOS_NODE.remoteExecution).toBe(false);
     expect(PRIVATE_ZDOS_NODE.networkExposure).toBe(false);
+  });
+
+  it("accepts the ZComm Videotel profile with an explicit HALT", () => {
+    const result = runZcommZlang("zcomm.status\nzcomm.page.list\nzcomm.room.list\nzcomm.sync status\nzcomm.tx deny\nhalt");
+    expect(result.status).toBe("ACCEPTED");
+    expect(result.output).toContain("screen: CEPT 40x24");
+    expect(result.output).toContain("transmit: DENIED");
+  });
+
+  it("denies shell and arbitrary socket syntax in ZComm", () => {
+    const result = runZcommZlang("zcomm.open socket=chat\nexec rm -rf /");
+    expect(result.status).toBe("DENIED");
+    expect(result.output).toContain("No shell, socket or credential operation attempted.");
+  });
+
+  it("queues a bounded message offline without losing the local state", async () => {
+    const next = await queueZCommMessage(emptyZCommState(), "piazza", "ALICE", "ciao microcosmo");
+    expect(next.pending).toHaveLength(1);
+    expect(next.pending[0].body).toBe("ciao microcosmo");
+    expect(next.pending[0].pending).toBe(true);
   });
 });

@@ -10,7 +10,7 @@ Il layout assume **portrait 9:16**, uso con una mano e interazioni verticali. Le
 
 ### 1. Microcosm / Home
 
-La Home presenta il brand `ZDOS // MICROcosm`, il badge `OFFLINE BETA`, il pannello `SYSTEM POSTURE / READY` e i marker di sicurezza `LOCAL`, `NETWORK DENIED` e `READ-ONLY`. Sotto l’header compare una griglia verticale di sette accessi implementati: Terminale, Zlang Playground, ZRetro Studio, ZComm Telecom, Evidence Chain, Security e ZDOS Profile. Ogni card mostra titolo, breve descrizione, stato e un accento cromatico distinto. Node Pulse e Zchain Zliang restano superfici di riferimento roadmap finché non vengono implementate nel codice.
+La Home presenta il brand `ZDOS // MICROcosm`, il badge `OFFLINE BETA`, il pannello `SYSTEM POSTURE / READY` e i marker di sicurezza `LOCAL`, `NETWORK DENIED` e `READ-ONLY`. Sotto l’header compare una griglia verticale di sette accessi implementati: Terminale, Zlang Playground, ZRetro Studio, ZComm Videotel, Evidence Chain, Security e ZDOS Profile. Ogni card mostra titolo, breve descrizione, stato e un accento cromatico distinto. Node Pulse e Zchain Zliang restano superfici di riferimento roadmap finché non vengono implementate nel codice.
 
 La parte bassa della Home contiene una nota di contesto: la beta non esegue shell reali e tutte le operazioni sono demo locali. Le card devono avere un’area di tocco ampia, feedback di pressione con riduzione dell’opacità e una gerarchia leggibile anche su schermi stretti.
 
@@ -88,14 +88,14 @@ La schermata `ZDOS PROFILE` espone l’identità del profilo, la postura `DEFAUL
 4. L’app mostra `VERIFIED` e `IR READY · manifest prepared`.
 5. La ricevuta è consultabile nella Evidence Chain.
 
-### Esecuzione del profilo telecom
+### Uso di ZComm Videotel
 
-1. L’utente apre `ZComm Telecom` dalla Home.
-2. Visualizza `LOCAL`, `UHF FIXTURE` e `DENIED TX`.
-3. Modifica il programma Zlang nell’editor.
-4. Tocca `RUN LOCAL PROFILE`.
-5. L’interprete controlla allowlist, `telecom.status` e `halt`.
-6. L’app mostra il risultato e registra una receipt nella Evidence Chain.
+1. L’utente apre `ZComm Videotel` dalla Home.
+2. Seleziona una pagina/messaggeria CEPT 40×24.
+3. Scrive nickname e messaggio; il messaggio viene persistito nella coda locale `PENDING`.
+4. L’app resta utilizzabile offline senza perdere il messaggio.
+5. Se configurato, l’utente avvia `SYNC HTTPS ALLOWLISTED`.
+6. L’interprete Zlang controlla allowlist, `zcomm.status` e `halt`; l’app registra una receipt nella Evidence Chain.
 
 ### Ispezione della sicurezza
 
@@ -128,24 +128,24 @@ Tutte le schermate usano il contenitore safe-area comune. Il contenuto scorre ve
 
 ## Confini intenzionali della beta
 
-L’app non deve richiedere account, backend, cloud sync, rete, database remoto o autenticazione. Non deve lanciare programmi Android, eseguire shell reali, aprire socket, accedere liberamente al filesystem, eseguire binari retro, incorporare emulatori o fingere una Evidence Chain crittografica persistente. Le parti future devono essere etichettate `ROADMAP` e non devono apparire come azioni disponibili.
+L’app non deve richiedere account, backend o rete per il funzionamento offline. Il sync online è opzionale, deve usare solo HTTPS verso un endpoint esplicito e non deve trasformare l’app in una shell remota. Non deve lanciare programmi Android, eseguire shell reali, aprire socket generici, accedere liberamente al filesystem, eseguire binari retro, incorporare emulatori o fingere una Evidence Chain crittografica persistente. Le parti future devono essere etichettate `ROADMAP`.
 
 
-### 7. ZComm Telecom
+### 7. ZComm Videotel
 
-La nuova superficie `ZCOMM TELECOM` è il primo tool telecomunicazioni del Microcosm. L’header mostra il profilo `ZLANG TOOL · LOCAL OBSERVATION`, mentre il pannello principale evidenzia `OBSERVE ONLY`, `LOCAL LINK`, fixture `UHF` e `DENIED TX`.
+La superficie `ZCOMM / VIDEOTEL` è la messaggeria local-first del Microcosm. L’header mostra `ZLANG COMMUNITY · LOCAL-FIRST`, mentre il pannello principale evidenzia `MESSAGGERIA 40×24`, coda locale e `DENIED TX`.
 
-L’editor contiene un programma Zlang locale composto da `telecom.status`, `telecom.scan band=uhf`, `telecom.route inspect`, `telecom.tx deny` e `halt`. Il CTA `RUN LOCAL PROFILE` interpreta soltanto questa allowlist. Un programma valido produce `ACCEPTED`, un receipt `telecom.zlang` e un output che dichiara esplicitamente l’assenza di operazioni radio, socket o rete.
+L’editor contiene un programma Zlang locale composto da `zcomm.status`, `zcomm.page.list`, `zcomm.room.list`, `zcomm.message.queue`, `zcomm.sync status`, `zcomm.tx deny` e `halt`. Il CTA `RUN ZCOMM PROFILE` interpreta soltanto questa allowlist. Un programma valido produce `ACCEPTED`, una receipt `zcomm.zlang` e un output che dichiara esplicitamente l’assenza di operazioni shell, socket generici o radio.
 
 Il tool non è uno scanner RF, un modem, un client SIP o un trasmettitore. Qualunque comando per aprire socket, selezionare un device radio, inviare pacchetti o trasmettere viene rifiutato dal profilo default-deny senza tentare l’operazione.
 
-### Flusso ZComm Telecom
+### Flusso ZComm Videotel
 
-1. L’utente apre `ZComm Telecom` dalla Home.
-2. Visualizza la postura `LOCAL / UHF FIXTURE / DENIED TX`.
-3. Modifica il programma Zlang nell’editor.
-4. Tocca `RUN LOCAL PROFILE`.
-5. L’interprete controlla allowlist, `telecom.status` e `halt`.
+1. L’utente apre `ZComm Videotel` dalla Home.
+2. Visualizza le pagine e la coda locale.
+3. Invia un messaggio bounded, che resta `PENDING` offline.
+4. Tocca `SYNC HTTPS ALLOWLISTED` quando il trasporto è configurato.
+5. L’interprete controlla allowlist, `zcomm.status` e `halt`.
 6. L’app mostra il risultato e registra una receipt nella Evidence Chain.
 
 ## Registro delle superfici
@@ -158,7 +158,7 @@ Il tool non è uno scanner RF, un modem, un client SIP o un trasmettitore. Qualu
 | 04 | Evidence Chain | Implementata |
 | 05 | Security | Implementata |
 | 06 | ZDOS Profile | Implementata |
-| 07 | ZComm Telecom | Implementata, locale e read-only |
+| 07 | ZComm Videotel | Implementata, local-first con sync HTTPS opzionale |
 | 08–09 | Node Pulse e Zchain Zliang | Roadmap/UI di riferimento |
 
 La registrazione delle superfici deve distinguere sempre tra implementazione effettiva, simulazione locale e roadmap visuale.

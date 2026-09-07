@@ -2,7 +2,7 @@
 
 > A small, controlled world for ZDOS experiments.
 
-**ZDOS // MICROcosm** è una teaching beta mobile/web per esplorare superfici ZDOS locali, osservabili e limitate. L’app non presenta un sistema operativo general-purpose: propone invece un microcosmo controllato in cui ogni azione è bounded, receipt-linked e soggetta a un profilo **DEFAULT-DENY**.
+**ZDOS // MICROcosm** è un prodotto mobile/web pronto all’uso per esplorare superfici ZDOS locali, osservabili e limitate. L’app non presenta un sistema operativo general-purpose: propone invece un microcosmo controllato in cui ogni azione è bounded, receipt-linked e soggetta a un profilo **DEFAULT-DENY**.
 
 ![ZDOS Microcosm — home](docs/screenshots/microcosm-home.jpg)
 
@@ -10,18 +10,18 @@
 
 | Indicatore | Valore |
 |---|---|
-| Release | Offline Beta |
+| Release | Product Ready 1.0.0 |
 | System posture | READY |
 | Session | LOCAL |
-| Network | DENIED |
-| Storage | READ-ONLY |
+| Network | DENIED by default; HTTPS sync optional |
+| Storage | LOCAL PERSISTENT QUEUE |
 | Superfici nel catalogo documentato | 10 (00–09) |
-| Superfici implementate nel codice | 07, inclusa ZComm Telecom |
-| Session receipts | 02 nella schermata di riferimento |
+| Superfici implementate nel codice | 07, inclusa ZComm Videotel |
+| Session receipts | Locali e receipt-linked |
 | Esecuzione remota | Non configurata |
 | Shell general-purpose | Non disponibile |
 
-L’app è progettata per mantenere il perimetro locale e leggibile. Il profilo di default nega le capacità non dichiarate; non vengono eseguiti comandi shell arbitrari, non vengono aperte connessioni remote e il nodo privato mostrato nell’app è soltanto un’identità descrittiva finché il trasporto non viene configurato.
+L’app è progettata per mantenere il perimetro locale e leggibile. Il profilo di default nega le capacità non dichiarate; non vengono eseguiti comandi shell arbitrari. Il trasporto online è disattivato per default e può essere usato solo con un endpoint HTTPS esplicito; il nodo privato mostrato nell’app resta un’identità descrittiva.
 
 ## Microcosm surfaces
 
@@ -38,7 +38,7 @@ La schermata principale presenta un catalogo di superfici locali. Ogni superfici
 | **06 — ZDOS Profile** | ROADMAP | Presenta identità, policy attiva e binding del nodo privato. |
 | **07 — Node Pulse** | READY | Mostra un heartbeat pubblico read-only del nodo First Node core-01. |
 | **08 — Zchain Zliang** | ROADMAP | Prevede la lettura blockchain read-only con profilo Orbot opzionale. |
-| **09 — ZComm Telecom** | READY | Osserva una fixture telecom in Zlang senza trasmettere o aprire socket. |
+| **09 — ZComm Videotel** | EXPERIMENTAL | Messaggeria 40×24 local-first in Zlang, con coda offline e sync HTTPS allowlisted. |
 
 ![ZDOS Microcosm — surfaces](docs/screenshots/microcosm-surfaces.jpg)
 
@@ -48,7 +48,7 @@ La logica dimostrativa è concentrata in `lib/zdos-demo.ts` e definisce un insie
 
 ### Zlang Micro Terminal
 
-Il terminale riconosce soltanto comandi appartenenti al profilo demo. Gli input sconosciuti vengono rifiutati con `DENIED`; non vengono passati a una shell del sistema operativo. Il comando `telecom` apre il riferimento al profilo ZComm Telecom e restituisce una postura locale con trasmissione negata.
+Il terminale riconosce soltanto comandi appartenenti al profilo demo. Gli input sconosciuti vengono rifiutati con `DENIED`; non vengono passati a una shell del sistema operativo. Il comando `telecom` mantiene un alias compatibile e apre il riferimento al profilo ZComm Videotel.
 
 Il catalogo corrente è:
 
@@ -71,21 +71,23 @@ La sintassi non appartenente al profilo supportato viene respinta con `DENIED`.
 
 La preview locale restituisce lo stato `VERIFIED` e il dettaglio `IR READY · manifest prepared`. Nella beta attuale questa è una preview contrattuale, non un compilatore o un generatore IR completo.
 
-### ZComm Telecom
+### ZComm Videotel
 
-`ZComm Telecom` è il primo tool telecomunicazioni della beta. Il suo programma è scritto interamente nel profilo locale Zlang `ZLB2 telecom.local` e permette soltanto osservazione bounded di una fixture UHF, ispezione read-only del percorso e negazione esplicita della trasmissione.
+`ZComm Videotel` reinterpreta le messaggerie Videotel come una superficie comunitaria moderna. Il programma è scritto nel profilo locale Zlang `ZLB2 zcomm.local` e governa pagine CEPT 40×24, stanze, nickname e messaggi. I messaggi vengono persistiti sul dispositivo e marcati `PENDING` finché un endpoint HTTPS esplicitamente configurato non conferma la sincronizzazione.
 
 Il template eseguibile è:
 
 ```zlang
-telecom.status
-telecom.scan band=uhf
-telecom.route inspect
-telecom.tx deny
+zcomm.status
+zcomm.page.list
+zcomm.room.list
+zcomm.message.queue
+zcomm.sync status
+zcomm.tx deny
 halt
 ```
 
-Il risultato atteso è `ACCEPTED`, con link `LOCAL OBSERVATION`, route `READ-ONLY` e `transmit: DENIED`. Il parser rifiuta comandi per socket, radio, rete o trasmissione e non esegue alcuna operazione telecom reale. `halt` è obbligatorio per chiudere il profilo.
+Il risultato atteso è `ACCEPTED`, con `screen: CEPT 40x24`, coda locale e `transmit: DENIED`. Il parser rifiuta shell, socket, radio, credenziali e comandi non allowlisted. `halt` è obbligatorio per chiudere il profilo. La sincronizzazione è best-effort, retry-safe e fail-closed: se la rete manca, la coda resta disponibile offline.
 
 ### Evidence Chain e ZTRACE
 
@@ -121,7 +123,8 @@ Il progetto usa Expo Router per il routing, React Native/TypeScript per l’appl
 | `app/` | Schermate Expo Router, layout globale e callback OAuth. |
 | `components/` | Componenti visuali riutilizzabili e tematizzati. |
 | `lib/zdos-demo.ts` | Contratti locali per terminale, validazione, preview e receipt. |
-| `lib/zdos-telecom.ts` | Interprete bounded del profilo telecom Zlang locale. |
+| `lib/zdos-telecom.ts` | Interprete legacy bounded mantenuto per compatibilità del terminale. |
+| `lib/zdos-zcomm.ts` | Runtime ZComm Videotel: profilo Zlang, stanze, coda offline e sync HTTPS. |
 | `lib/zdos-node.ts` | Profilo descrittivo del nodo ZDOS. |
 | `lib/trpc.ts` | Client tRPC e collegamento al backend. |
 | `server/` | Router, autenticazione e servizi infrastrutturali. |
@@ -131,9 +134,9 @@ Il progetto usa Expo Router per il routing, React Native/TypeScript per l’appl
 
 ## Sicurezza e limiti intenzionali
 
-Il progetto adotta un modello **local by design**. La rete è negata nella postura mostrata, lo storage è read-only nella superficie principale e le capacità non dichiarate vengono negate. Questi limiti sono parte del comportamento previsto della beta, non errori di configurazione.
+Il progetto adotta un modello **local by design**. La rete è negata nella postura mostrata, mentre i messaggi ZComm vengono salvati localmente in una coda persistente. Le capacità non dichiarate vengono negate. Questi limiti sono parte del comportamento previsto della beta, non errori di configurazione.
 
-`ZComm Telecom` è un simulatore didattico locale: non sostituisce un modem, uno scanner RF, un client SIP, una radio o un sistema di monitoraggio di rete.
+`ZComm Videotel` è una messaggeria testuale local-first: non sostituisce un modem, uno scanner RF, un client SIP, una radio o un sistema di monitoraggio di rete. Per abilitare il trasporto online impostare `EXPO_PUBLIC_ZCOMM_SYNC_URL` a un endpoint HTTPS sotto il proprio controllo; senza questa variabile l’app resta pienamente utilizzabile offline.
 
 Le funzionalità indicate come `ROADMAP` sono segnali di direzione progettuale. In particolare, il profilo ZDOS, Node Pulse e Zchain Zliang non devono essere interpretati come integrazioni remote o blockchain operative già disponibili nel repository.
 
@@ -181,7 +184,7 @@ La generazione di un APK nativo richiede un ambiente Android SDK/Gradle configur
 
 ## Direzione del progetto
 
-Le evoluzioni naturali del microcosmo sono la persistenza delle receipt, un audit log server-side, capability grant/revoke espliciti, test end-to-end per OAuth, l’eventuale estensione della navigazione alle superfici roadmap e una definizione formale del modello di minaccia prima di qualsiasi attivazione del trasporto remoto. Il modulo telecom deve restare locale e read-only finché non esiste una revisione separata del profilo di sicurezza.
+Le evoluzioni naturali del microcosmo sono la persistenza delle receipt, un audit log server-side, capability grant/revoke espliciti, test end-to-end per OAuth, l’eventuale estensione della navigazione alle superfici roadmap e una definizione formale del modello di minaccia prima di ampliare il trasporto remoto. ZComm resta local-first: la sincronizzazione online non sostituisce la coda locale e non abilita shell, socket generici o trasmissioni radio.
 
 Fino ad allora, ZDOS // MICROcosm resta ciò che dichiara di essere: **una piccola, controllata e osservabile area di esperimenti ZDOS**.
 
@@ -196,3 +199,15 @@ Consultare la licenza e le policy del repository per i termini di utilizzo del p
 - [Expo Router](https://docs.expo.dev/router/introduction/)
 - [Drizzle ORM](https://orm.drizzle.team/)
 - [tRPC](https://trpc.io/)
+
+## Pubblicazione
+
+La versione web viene pubblicata automaticamente su GitHub Pages a ogni aggiornamento di `main`:
+
+**https://high-cde.github.io/zdos-microcosm-beta/**
+
+L’app mobile resta configurata per Expo Android/iOS. Il canale ufficiale della collaborazione è **[La Nova Avon su WhatsApp](https://whatsapp.com/channel/0029Vb7akVkKAwEp2NjB0U0x)**; il nome è cliccabile direttamente dalla Home.
+
+## Licenza e utilizzo
+
+Il progetto è distribuito con la **La Nova Avon — Creative Use License**. Sono consentiti l’uso personale, educativo e le creazioni originali autorizzate. Sono vietati copia, clonazione, fork, mirror, redistribuzione, rebranding, white-label, uso commerciale e distribuzione di derivati senza autorizzazione scritta. Consultare [LICENSE](LICENSE) per il testo completo.

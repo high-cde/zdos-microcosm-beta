@@ -17,7 +17,7 @@
 
 ## Known beta limits
 
-- [ ] Local receipts remain session state; no AsyncStorage persistence in this build
+- [ ] Local receipts remain session state; ZComm message queue now persists with AsyncStorage
 - [ ] No native Zlang compiler, Android shell, emulator, ROM or remote backend
 
 ## GitHub publication
@@ -36,15 +36,15 @@
 - [ ] Attach the recognized private ZDOS node only after confirming its identity and supported access method
 - [x] Test the extended profile and synchronize the changes to the private GitHub repository
 
-## ZComm Telecom
+## ZComm Videotel
 
-- [x] Aggiungere il profilo locale `ZLB2 telecom.local`
-- [x] Implementare `telecom.status`, `telecom.scan band=uhf`, `telecom.route inspect`, `telecom.tx deny` e `halt`
-- [x] Aggiungere la superficie UI ZComm Telecom con editor e output osservabile
-- [x] Collegare le esecuzioni alla Evidence Chain tramite receipt `telecom.zlang`
-- [x] Aggiungere test per percorso valido, sintassi non supportata e requisito `HALT`
-- [ ] Valutare una persistenza locale delle receipt senza introdurre sincronizzazione remota
-- [ ] Definire, in una revisione separata, eventuali integrazioni radio o di rete reali; nessuna è autorizzata nella beta attuale
+- [x] Implementare il profilo locale `ZLB2 zcomm.local`
+- [x] Implementare pagine CEPT 40×24, stanze, nickname e messaggi bounded
+- [x] Aggiungere coda persistente offline con stato `PENDING`
+- [x] Aggiungere sync HTTPS opzionale, allowlisted e fail-closed
+- [x] Collegare esecuzioni e invii alla Evidence Chain tramite receipt `zcomm.*`
+- [x] Aggiungere test per percorso valido, sintassi non supportata, `HALT` e coda offline
+- [ ] Definire una revisione separata per eventuali integrazioni radio o di rete reali; nessuna è autorizzata nella beta attuale
 
 ## Coerenza repository
 

@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -21,7 +22,7 @@ import {
   type ReceiptStatus,
 } from "@/lib/zdos-demo";
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "@/lib/zdos-node";
-import { runTelecomZlang, telecomZlangTemplate } from "@/lib/zdos-telecom";
+import { loadZCommState, queueZCommMessage, runZcommZlang, syncZCommState, zcommZlangTemplate, type ZCommState } from "@/lib/zdos-zcomm";
 
 type Surface = "home" | "terminal" | "zlang" | "zretro" | "telecom" | "evidence" | "security" | "profile";
 
@@ -83,8 +84,8 @@ const MENU_CARDS: MenuCard[] = [
   {
     id: "telecom",
     index: "07",
-    title: "ZComm Telecom",
-    description: "Osserva un profilo telecom Zlang senza trasmettere o aprire socket.",
+    title: "ZComm Videotel",
+    description: "Messaggeria 40×24 Zlang con coda offline e sync HTTPS opzionale.",
     status: "READY",
     accent: COLORS.cyan,
   },
@@ -173,6 +174,9 @@ function HomeHeader({ receiptsCount }: { receiptsCount: number }) {
       <Text style={styles.heroTitle}>ZDOS //</Text>
       <Text style={styles.heroTitleAccent}>MICROcosm</Text>
       <Text style={styles.heroSubtitle}>A small, controlled world for ZDOS experiments.</Text>
+      <Pressable accessibilityRole="link" accessibilityLabel="Apri il canale WhatsApp La Nova Avon" onPress={() => void Linking.openURL("https://whatsapp.com/channel/0029Vb7akVkKAwEp2NjB0U0x")} style={({ pressed }) => [styles.partnerLink, pressed && styles.pressed]}>
+        <Text style={styles.partnerLinkText}>In collaborazione con </Text><Text style={styles.partnerLinkName}>La Nova Avon ↗</Text>
+      </Pressable>
 
       <View style={styles.postureCard}>
         <View style={styles.postureTopRow}>
@@ -195,8 +199,8 @@ function HomeHeader({ receiptsCount }: { receiptsCount: number }) {
             <Text style={styles.markerCaption}>NETWORK</Text>
           </View>
           <View style={styles.marker}>
-            <Text style={styles.markerValue}>READ-ONLY</Text>
-            <Text style={styles.markerCaption}>STORAGE</Text>
+            <Text style={styles.markerValue}>LOCAL</Text>
+            <Text style={styles.markerCaption}>QUEUE</Text>
           </View>
         </View>
       </View>
@@ -399,35 +403,58 @@ function ZlangSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (r
 }
 
 function TelecomSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
-  const [source, setSource] = useState(telecomZlangTemplate());
-  const [result, setResult] = useState<ReturnType<typeof runTelecomZlang> | null>(null);
+  const [source, setSource] = useState(zcommZlangTemplate());
+  const [result, setResult] = useState<ReturnType<typeof runZcommZlang> | null>(null);
+  const [state, setState] = useState<ZCommState | null>(null);
+  const [body, setBody] = useState("");
+  const [nick, setNick] = useState("VISITOR");
+  const [syncDetail, setSyncDetail] = useState("local queue loading …");
+  const [roomId, setRoomId] = useState("piazza");
+
+  useEffect(() => { void loadZCommState().then(setState); }, []);
 
   const execute = () => {
-    const nextResult = runTelecomZlang(source);
+    const nextResult = runZcommZlang(source);
     setResult(nextResult);
-    onReceipt({ operation: "telecom.zlang", status: nextResult.status, detail: nextResult.detail });
+    onReceipt({ operation: "zcomm.zlang", status: nextResult.status, detail: nextResult.detail });
   };
+
+  const sendMessage = async () => { if (!state) return; const next = await queueZCommMessage(state, roomId, nick, body); setState(next); setBody(""); setSyncDetail("queued locally · safe to send when online"); onReceipt({ operation: "zcomm.message.queue", status: "ACCEPTED", detail: "message persisted in offline queue" }); };
+  const sync = async () => { if (!state) return; const next = await syncZCommState(state, process.env.EXPO_PUBLIC_ZCOMM_SYNC_URL); setState(next.state); setSyncDetail(next.detail); onReceipt({ operation: "zcomm.sync", status: next.state.lastSync ? "ACCEPTED" : "READY", detail: next.detail }); };
+  const activeMessages = state?.messages.filter((message) => message.roomId === roomId).slice(-8) ?? [];
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.telecomFlex}>
       <ScrollView contentContainerStyle={styles.surfaceContent} keyboardShouldPersistTaps="handled">
-        <SurfaceHeader title="ZCOMM TELECOM" eyebrow="ZLANG TOOL · LOCAL OBSERVATION" onBack={onBack} />
+        <SurfaceHeader title="ZCOMM / VIDEOTEL" eyebrow="ZLANG COMMUNITY · LOCAL-FIRST" onBack={onBack} />
         <View style={styles.telecomHero}>
           <View style={styles.telecomHeroTop}>
             <View>
               <Text style={styles.microLabel}>TELECOMMUNICATIONS PROFILE</Text>
-              <Text style={styles.telecomTitle}>OBSERVE ONLY</Text>
+              <Text style={styles.telecomTitle}>MESSAGGERIA 40×24</Text>
             </View>
             <StatusBadge status="READY" />
           </View>
           <Text style={styles.telecomDescription}>
-            Un primo tool Zlang per leggere una fixture di collegamento telecom senza radio, socket, rete o trasmissione.
+            Una comunità testuale in stile Videotel: pagine, nickname e messaggi persistono offline e si sincronizzano solo verso un endpoint HTTPS configurato.
           </Text>
           <View style={styles.telecomGrid}>
             <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>LOCAL</Text><Text style={styles.telecomGridLabel}>LINK</Text></View>
-            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>UHF</Text><Text style={styles.telecomGridLabel}>FIXTURE</Text></View>
-            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>DENIED</Text><Text style={styles.telecomGridLabel}>TX</Text></View>
+            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>40×24</Text><Text style={styles.telecomGridLabel}>SCREEN</Text></View>
+            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>{state?.pending.length ?? 0}</Text><Text style={styles.telecomGridLabel}>OFFLINE QUEUE</Text></View>
           </View>
+        </View>
+        <Text style={styles.inputLabel}>PAGES / MESSAGGERIE</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.roomScroller}>
+          {(state?.rooms ?? []).map((room) => <Pressable key={room.id} onPress={() => { setRoomId(room.id); setState(state ? { ...state, activePage: room.page } : state); }} style={[styles.roomChip, room.id === roomId && styles.roomChipActive]}><Text style={styles.roomPage}>*{room.page}#</Text><Text style={styles.roomTitle}>{room.title}</Text></Pressable>)}
+        </ScrollView>
+        <View style={styles.chatCard}>
+          <Text style={styles.chatHeader}>{state?.rooms.find((room) => room.id === roomId)?.description ?? "Caricamento pagina…"}</Text>
+          {activeMessages.map((message) => <View key={message.id} style={styles.messageRow}><Text style={styles.messageNick}>{message.nick}{message.pending ? " · PENDING" : ""}</Text><Text style={styles.messageBody}>{message.body}</Text></View>)}
+          <TextInput value={nick} onChangeText={setNick} autoCapitalize="characters" placeholder="NICKNAME" placeholderTextColor={COLORS.muted} style={styles.nickInput} />
+          <TextInput value={body} onChangeText={setBody} placeholder="Scrivi un messaggio…" placeholderTextColor={COLORS.muted} maxLength={240} style={styles.messageInput} />
+          <Pressable onPress={sendMessage} style={styles.messageButton}><Text style={styles.telecomButtonText}>ACCODA MESSAGGIO OFFLINE</Text></Pressable>
+          <Pressable onPress={sync} style={styles.syncButton}><Text style={styles.syncButtonText}>SYNC HTTPS ALLOWLISTED</Text><Text style={styles.syncDetail}>{syncDetail}</Text></Pressable>
         </View>
         <Text style={styles.inputLabel}>ZLANG TELECOM PROGRAM</Text>
         <TextInput
@@ -440,7 +467,7 @@ function TelecomSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: 
           style={styles.telecomCodeInput}
         />
         <Pressable onPress={execute} style={({ pressed }) => [styles.telecomButton, pressed && styles.telecomButtonPressed]}>
-          <Text style={styles.telecomButtonText}>RUN LOCAL PROFILE</Text>
+          <Text style={styles.telecomButtonText}>RUN ZCOMM PROFILE</Text>
           <Text style={styles.telecomButtonArrow}>↗</Text>
         </Pressable>
         {result ? (
@@ -450,7 +477,7 @@ function TelecomSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: 
             <Text style={styles.receiptLink}>local receipt · no network operation attempted</Text>
           </View>
         ) : (
-          <View style={styles.telecomNote}><Text style={styles.telecomNoteText}>Supported profile: status · scan band=uhf · route inspect · tx deny · halt</Text></View>
+          <View style={styles.telecomNote}><Text style={styles.telecomNoteText}>Supported Zlang: status · page.list · room.list · message.queue · sync status · tx deny · halt</Text></View>
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -617,12 +644,12 @@ function ProfileSurface({ onBack, receiptCount }: { onBack: () => void; receiptC
         <View style={styles.nodeCard}>
           <View style={styles.nodeCardTop}>
             <View>
-              <Text style={styles.microLabel}>PRIVATE ZDOS NODE</Text>
+              <Text style={styles.microLabel}>LOCAL APPLICATION PROFILE</Text>
               <Text style={styles.nodeStatus}>{nodeIdentity} · UNLINKED</Text>
             </View>
             <StatusBadge status={nodeIdentity === "IDENTIFIED" ? "VERIFIED" : "ROADMAP"} />
           </View>
-          <Text style={styles.nodeText}>Identity received from the VPS enrollment profile. The Microcosm binding remains off because no authenticated transport has been configured.</Text>
+          <Text style={styles.nodeText}>This profile is local-only. No server address, infrastructure identity or remote transport is stored in the application.</Text>
           <View style={styles.nodeChecklist}>
             <Text style={styles.nodeChecklistItem}>— node name: {node.nodeName}</Text>
             <Text style={styles.nodeChecklistItem}>— node id: {node.nodeId}</Text>
@@ -720,6 +747,9 @@ const styles = StyleSheet.create({
   heroTitle: { color: COLORS.ink, fontSize: 40, lineHeight: 42, fontWeight: "800", letterSpacing: -1.5 },
   heroTitleAccent: { color: COLORS.cyan, fontSize: 40, lineHeight: 42, fontWeight: "800", letterSpacing: -1.5 },
   heroSubtitle: { color: COLORS.muted, fontSize: 14, lineHeight: 21, marginTop: 10, marginBottom: 26, maxWidth: 300 },
+  partnerLink: { flexDirection: "row", alignItems: "center", marginTop: -16, marginBottom: 22 },
+  partnerLinkText: { color: COLORS.muted, fontSize: 11 },
+  partnerLinkName: { color: COLORS.cyan, fontSize: 11, fontWeight: "900", letterSpacing: 0.4 },
   postureCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 18, marginBottom: 28 },
   postureTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   postureTitle: { color: COLORS.lime, fontSize: 28, fontWeight: "800", letterSpacing: 1, marginTop: 4 },
@@ -869,4 +899,20 @@ const styles = StyleSheet.create({
   telecomOutput: { color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 11, lineHeight: 18 },
   telecomNote: { borderLeftWidth: 2, borderLeftColor: COLORS.amber, marginTop: 18, paddingLeft: 14 },
   telecomNoteText: { color: COLORS.muted, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, lineHeight: 17 },
+  roomScroller: { marginBottom: 12 },
+  roomChip: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.line, padding: 10, marginRight: 8, minWidth: 130 },
+  roomChipActive: { borderColor: COLORS.cyan, backgroundColor: "#10242A" },
+  roomPage: { color: COLORS.cyan, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, fontWeight: "800" },
+  roomTitle: { color: COLORS.ink, fontSize: 12, fontWeight: "800", marginTop: 5 },
+  chatCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 14, marginBottom: 18 },
+  chatHeader: { color: COLORS.muted, fontSize: 11, marginBottom: 12 },
+  messageRow: { borderTopWidth: 1, borderTopColor: COLORS.line, paddingVertical: 9 },
+  messageNick: { color: COLORS.lime, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, fontWeight: "900" },
+  messageBody: { color: COLORS.ink, fontSize: 12, lineHeight: 18, marginTop: 3 },
+  nickInput: { borderWidth: 1, borderColor: COLORS.line, color: COLORS.ink, fontSize: 11, padding: 10, marginTop: 7 },
+  messageInput: { borderWidth: 1, borderColor: COLORS.cyan, color: COLORS.ink, fontSize: 12, padding: 10, marginTop: 7 },
+  messageButton: { backgroundColor: COLORS.cyan, padding: 13, marginTop: 8, alignItems: "center" },
+  syncButton: { borderWidth: 1, borderColor: COLORS.lime, padding: 11, marginTop: 8 },
+  syncButtonText: { color: COLORS.lime, fontSize: 10, fontWeight: "900", letterSpacing: 1 },
+  syncDetail: { color: COLORS.muted, fontSize: 10, marginTop: 5 },
 });
