@@ -23,8 +23,9 @@ import {
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "@/lib/zdos-node";
 import { fetchZdosNodeStatus, nodeStatusAsReceiptStatus, type ZdosNodeStatusResult } from "@/lib/zdos-node-status";
 import { ZCHAIN_PROJECT, orbotEndpoint, validateZchainZlang } from "@/lib/zchain-zlang";
+import { servicePageForCode, validateVideotexProgram, VIDEOTEX_ZLANG_SOURCE, ZCOMM_COLUMNS, ZCOMM_ROWS } from "@/lib/zcomm-videotex";
 
-type Surface = "home" | "terminal" | "zlang" | "zretro" | "evidence" | "security" | "profile" | "node" | "zchain" | "microterm";
+type Surface = "home" | "terminal" | "zlang" | "zretro" | "evidence" | "security" | "profile" | "node" | "zchain" | "microterm" | "zcomm";
 
 type TerminalEntry = {
   id: string;
@@ -128,6 +129,14 @@ const MENU_CARDS: MenuCard[] = [
     description: "Lettura blockchain read-only con profilo Orbot opzionale.",
     status: "ROADMAP",
     accent: COLORS.violet,
+  },
+  {
+    id: "zcomm",
+    index: "07",
+    title: "ZComm Videotel",
+    description: "Griglia CEPT 40×24 con contratto Zlang deterministico e read-only.",
+    status: "READY",
+    accent: COLORS.cyan,
   },
 ];
 
@@ -596,6 +605,46 @@ function SecuritySurface({ onBack }: { onBack: () => void }) {
   );
 }
 
+function ZcommVideotelSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
+  const [serviceCode, setServiceCode] = useState("*01#");
+  const [page, setPage] = useState("ZDOS STATUS · core-01 · DEFAULT-DENY");
+  const [attested, setAttested] = useState(false);
+
+  const runSession = () => {
+    const program = validateVideotexProgram(VIDEOTEX_ZLANG_SOURCE);
+    const accepted = program.every((result) => result.status !== "DENIED");
+    setPage(servicePageForCode(serviceCode));
+    setAttested(accepted);
+    onReceipt({ operation: "zcomm.videotex.session", status: accepted ? "VERIFIED" : "DENIED", detail: accepted ? "videotex.session.initialized · local evidence" : "Videotex contract rejected" });
+  };
+
+  return (
+    <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
+      <ScrollView contentContainerStyle={styles.surfaceContent} keyboardShouldPersistTaps="handled">
+        <SurfaceHeader title="ZCOMM VIDEOTEL" eyebrow="SURFACE / 07 · ZLANG NATIVE / CEPT 40×24" onBack={onBack} />
+        <View style={styles.videotexFrame}>
+          <View style={styles.videotexTop}><Text style={styles.videotexTopText}>Z-VIDEOTEX v1.0</Text><Text style={styles.videotexTopText}>{ZCOMM_COLUMNS}×{ZCOMM_ROWS}</Text></View>
+          <View style={styles.videotexGrid}>
+            <Text style={styles.videotexGridText}>+----------------------------------------+</Text>
+            <Text style={styles.videotexGridText}>|         ZDOS VIDEOTEX v1.0             |</Text>
+            <Text style={styles.videotexGridText}>|      [01] ZDOS Status                  |</Text>
+            <Text style={styles.videotexGridText}>|      [02] Zlang Runtime                |</Text>
+            <Text style={styles.videotexGridText}>|      [03] Evidence Chain Ledger        |</Text>
+            <Text style={styles.videotexGridText}>+----------------------------------------+</Text>
+            <Text style={styles.videotexGridText}>| {page.padEnd(38, " ").slice(0, 38)} |</Text>
+            <Text style={styles.videotexGridText}>| Inserisci codice servizio (*Pagina#):  |</Text>
+            <Text style={styles.videotexGridText}>| {serviceCode.padEnd(38, " ").slice(0, 38)} |</Text>
+          </View>
+          <View style={styles.videotexFooter}><Text style={styles.videotexFooterText}>{attested ? "ATTESTED · LOCAL EVIDENCE" : "WAITING · CONTRACT NOT RUN"}</Text><Text style={styles.videotexFooterText}>HALT</Text></View>
+        </View>
+        <View style={styles.videotexInputRow}><TextInput accessibilityLabel="Codice servizio ZComm Videotel" value={serviceCode} onChangeText={setServiceCode} placeholder="*01#" placeholderTextColor="#5D737C" autoCapitalize="none" autoCorrect={false} style={styles.videotexInput} /><PrimaryButton label="RUN ZCOMM SESSION" onPress={runSession} accent={COLORS.cyan} /></View>
+        <View style={styles.videotexContract}><Text style={styles.microLabel}>NATIVE CONTRACT / videotex.zlang</Text><Text style={styles.videotexSource}>{"status node.profile\nemit [CEPT 40×24 grid]\nstorage.read \".videotex_index\"\nattest videotex.session.initialized"}</Text></View>
+        <Text style={styles.disclaimer}>ZComm è un sottosistema locale e deterministico. Il canale Z-Modem/V.23 è solo emulato nel contratto: non apre socket, non contatta server, non esegue bytecode arbitrario e usa esclusivamente il nodo pubblico reale core-01. L’attestazione è una ricevuta locale, non una firma esterna.</Text>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
 function ZchainSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
   const [source, setSource] = useState("READ CHAIN");
   const [result, setResult] = useState<ReturnType<typeof validateZchainZlang> | null>(null);
@@ -700,15 +749,15 @@ function ProfileSurface({ onBack, receiptCount }: { onBack: () => void; receiptC
         <View style={styles.nodeCard}>
           <View style={styles.nodeCardTop}>
             <View>
-              <Text style={styles.microLabel}>PRIVATE ZDOS NODE</Text>
-              <Text style={styles.nodeStatus}>{nodeIdentity} · UNLINKED</Text>
+            <Text style={styles.microLabel}>PUBLIC ZDOS NODE</Text>
+            <Text style={styles.nodeStatus}>{nodeIdentity} · READ-ONLY</Text>
             </View>
             <StatusBadge status={nodeIdentity === "IDENTIFIED" ? "VERIFIED" : "ROADMAP"} />
           </View>
-          <Text style={styles.nodeText}>Identity received from the VPS enrollment profile. The Microcosm binding remains off because no authenticated transport has been configured.</Text>
+          <Text style={styles.nodeText}>Public identity for the First Node. The Microcosm client reads status only; no private enrollment or authenticated control transport is stored.</Text>
           <View style={styles.nodeChecklist}>
-            <Text style={styles.nodeChecklistItem}>— node name: {node.nodeName}</Text>
-            <Text style={styles.nodeChecklistItem}>— node id: {node.nodeId}</Text>
+            <Text style={styles.nodeChecklistItem}>— node: {node.nodeName}</Text>
+            <Text style={styles.nodeChecklistItem}>— status channel: public HTTPS</Text>
             <Text style={styles.nodeChecklistItem}>— transport: {node.transport}</Text>
             <Text style={styles.nodeChecklistItem}>— remote execution: denied</Text>
           </View>
@@ -752,6 +801,7 @@ export default function MicrocosmScreen() {
   if (surface === "profile") return <ProfileSurface onBack={() => setSurface("home")} receiptCount={receipts.length} />;
   if (surface === "node") return <NodePulseSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "zchain") return <ZchainSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
+  if (surface === "zcomm") return <ZcommVideotelSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
 
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
@@ -936,6 +986,17 @@ const styles = StyleSheet.create({
   nodePulseDataRow: { flexDirection: "row", justifyContent: "space-between", gap: 12, borderBottomWidth: 1, borderBottomColor: COLORS.line, paddingVertical: 13 },
   nodePulseKey: { color: COLORS.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1 },
   nodePulseValue: { color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, flex: 1, textAlign: "right" },
+  videotexFrame: { backgroundColor: "#031014", borderWidth: 1, borderColor: COLORS.cyan, padding: 10, marginBottom: 14 },
+  videotexTop: { flexDirection: "row", justifyContent: "space-between", borderBottomWidth: 1, borderBottomColor: COLORS.line, paddingBottom: 9, marginBottom: 9 },
+  videotexTopText: { color: COLORS.cyan, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, fontWeight: "800", letterSpacing: 1 },
+  videotexGrid: { minHeight: 310, justifyContent: "center", paddingVertical: 8 },
+  videotexGridText: { color: COLORS.lime, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, lineHeight: 19 },
+  videotexFooter: { flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: COLORS.line, paddingTop: 9 },
+  videotexFooterText: { color: COLORS.amber, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 9, fontWeight: "800" },
+  videotexInputRow: { marginBottom: 2 },
+  videotexInput: { borderWidth: 1, borderColor: COLORS.cyan, backgroundColor: COLORS.panelSoft, color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 13, padding: 13, marginBottom: 10 },
+  videotexContract: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 14, marginTop: 2 },
+  videotexSource: { color: COLORS.cyan, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 11, lineHeight: 20, marginTop: 12 },
   ztraceCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.violet, padding: 16, marginBottom: 14 },
   ztraceTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   ztraceGlyph: { color: COLORS.violet, fontSize: 22 },

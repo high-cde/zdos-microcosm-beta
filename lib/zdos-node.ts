@@ -13,16 +13,16 @@ export type ZdosNodeProfile = {
 };
 
 /**
- * Identity reported by the user's VPS enrollment command.
- * This is metadata only: no password, token, IP address or SSH key is stored.
+ * Public node identity only. No VPS hostname, address, credential or private
+ * enrollment metadata is stored in the client.
  */
 export const PRIVATE_ZDOS_NODE: ZdosNodeProfile = {
   schema: "zdos-node/v1",
   profile: "zdos.microcosm.beta",
-  nodeId: "ZNODE-FF0A135D12F83F61",
-  nodeName: "vmi3082470.contaboserver.net",
-  os: "Ubuntu 22.04",
-  kernel: "Linux 5.15.0-190-generic",
+  nodeId: "core-01",
+  nodeName: "core-01",
+  os: "public-status-only",
+  kernel: "not-disclosed",
   posture: "DEFAULT-DENY",
   transport: "not-configured",
   capabilities: ["node.status", "evidence.append", "manifest.preview"],

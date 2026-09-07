@@ -1,0 +1,20 @@
+# ZDOS Native Videotex Terminal Specification
+# Profilo ZLB2 v2.5 - Target ZDOS Microcosm
+
+# 1. Inizializzazione della sessione e verifica dello stato del nodo
+status node.profile
+
+# 2. Rendering della schermata principale a griglia fissa (ispirata al CEPT)
+emit +----------------------------------------+
+emit |         ZDOS VIDEOTEX v1.0             |
+emit |      [01] ZDOS Status                  |
+emit |      [02] Zlang Runtime                |
+emit |      [03] Evidence Chain Ledger        |
+emit +----------------------------------------+
+emit Inserisci codice servizio (*Pagina#):
+
+# 3. Richiesta di lettura confinata tramite capability autorizzata
+storage.read ".videotex_index"
+
+# 4. Generazione della prova crittografica locale sulla Evidence Chain
+attest videotex.session.initialized

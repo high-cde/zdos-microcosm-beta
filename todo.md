@@ -35,3 +35,10 @@
 - [x] Add a documented advanced “magic” layer with deterministic local diagnostics and traceable receipts
 - [ ] Attach the recognized private ZDOS node only after confirming its identity and supported access method
 - [x] Test the extended profile and synchronize the changes to the private GitHub repository
+
+## ZComm Z-Videotex
+
+- [x] Add deterministic CEPT-inspired 40×24 Videotex rendering surface
+- [x] Add bounded `videotex.zlang` contract with status, emit, storage.read and local attest
+- [x] Add `*Pagina#` service navigation for core-01, Zlang Runtime and Evidence Chain
+- [x] Keep Z-Modem/V.23 emulated and deny sockets, arbitrary bytecode and remote execution
