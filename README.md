@@ -2,7 +2,7 @@
 
 > A small, controlled world for ZDOS experiments.
 
-**ZDOS // MICROcosm** è una teaching beta mobile/web per esplorare superfici ZDOS locali, osservabili e limitate. L’app non presenta un sistema operativo general-purpose: propone invece un microcosmo controllato in cui ogni azione è bounded, receipt-linked e soggetta a un profilo **DEFAULT-DENY**.
+**ZDOS // MICROcosm** è un prodotto mobile/web pronto all’uso per esplorare superfici ZDOS locali, osservabili e limitate. L’app non presenta un sistema operativo general-purpose: propone invece un microcosmo controllato in cui ogni azione è bounded, receipt-linked e soggetta a un profilo **DEFAULT-DENY**.
 
 ![ZDOS Microcosm — home](docs/screenshots/microcosm-home.jpg)
 
@@ -10,14 +10,14 @@
 
 | Indicatore | Valore |
 |---|---|
-| Release | Offline Beta |
+| Release | Product Ready 1.0.0 |
 | System posture | READY |
 | Session | LOCAL |
 | Network | DENIED by default; HTTPS sync optional |
 | Storage | LOCAL PERSISTENT QUEUE |
 | Superfici nel catalogo documentato | 10 (00–09) |
 | Superfici implementate nel codice | 07, inclusa ZComm Videotel |
-| Session receipts | 02 nella schermata di riferimento |
+| Session receipts | Locali e receipt-linked |
 | Esecuzione remota | Non configurata |
 | Shell general-purpose | Non disponibile |
 
@@ -199,3 +199,15 @@ Consultare la licenza e le policy del repository per i termini di utilizzo del p
 - [Expo Router](https://docs.expo.dev/router/introduction/)
 - [Drizzle ORM](https://orm.drizzle.team/)
 - [tRPC](https://trpc.io/)
+
+## Pubblicazione
+
+La versione web viene pubblicata automaticamente su GitHub Pages a ogni aggiornamento di `main`:
+
+**https://high-cde.github.io/zdos-microcosm-beta/**
+
+L’app mobile resta configurata per Expo Android/iOS. Il canale ufficiale della collaborazione è **[La Nova Avon su WhatsApp](https://whatsapp.com/channel/0029Vb7akVkKAwEp2NjB0U0x)**; il nome è cliccabile direttamente dalla Home.
+
+## Licenza e utilizzo
+
+Il progetto è distribuito con la **La Nova Avon — Creative Use License**. Sono consentiti l’uso personale, educativo e le creazioni originali autorizzate. Sono vietati copia, clonazione, fork, mirror, redistribuzione, rebranding, white-label, uso commerciale e distribuzione di derivati senza autorizzazione scritta. Consultare [LICENSE](LICENSE) per il testo completo.

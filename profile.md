@@ -27,7 +27,7 @@ Il binding previsto è intenzionalmente ristretto a un nodo che esponga un’ide
 | Read model | Stato e ricevute possono essere letti; le azioni mutanti restano disabilitate |
 | Failure mode | Nodo non riconosciuto, non raggiungibile o non verificabile = nessun tentativo di collegamento |
 
-Il profilo ricevuto dalla VPS identifica il nodo come `vmi3082470.contaboserver.net`, con ID `ZNODE-FF0A135D12F83F61`, sistema `Ubuntu 22.04` e kernel `Linux 5.15.0-190-generic`. Il progetto espone quindi lo stato `IDENTIFIED / UNLINKED`: l’identità è registrata, ma non viene attivato alcun collegamento remoto perché il trasporto è ancora `not-configured`.
+Il progetto espone soltanto un profilo applicativo locale `IDENTIFIED / UNLINKED`. Non vengono memorizzati IP, hostname, fingerprint infrastrutturali, credenziali o metadati di server.
 
 ## ZTRACE — la “magia” trasparente
 

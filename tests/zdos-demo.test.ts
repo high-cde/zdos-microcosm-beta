@@ -89,9 +89,10 @@ describe("ZDOS local demo contracts", () => {
     expect(result.detail).toBe("telecom profile requires status and HALT");
   });
 
-  it("recognizes the enrolled VPS metadata without enabling remote execution", () => {
+  it("recognizes only the local application profile without remote execution", () => {
     expect(nodeBindingState(PRIVATE_ZDOS_NODE)).toBe("IDENTIFIED");
-    expect(PRIVATE_ZDOS_NODE.nodeName).toBe("vmi3082470.contaboserver.net");
+    expect(PRIVATE_ZDOS_NODE.nodeName).toBe("local-app");
+    expect(PRIVATE_ZDOS_NODE.nodeId).toBe("LOCAL-APP");
     expect(PRIVATE_ZDOS_NODE.transport).toBe("not-configured");
     expect(PRIVATE_ZDOS_NODE.remoteExecution).toBe(false);
     expect(PRIVATE_ZDOS_NODE.networkExposure).toBe(false);

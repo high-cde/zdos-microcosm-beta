@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -173,6 +174,9 @@ function HomeHeader({ receiptsCount }: { receiptsCount: number }) {
       <Text style={styles.heroTitle}>ZDOS //</Text>
       <Text style={styles.heroTitleAccent}>MICROcosm</Text>
       <Text style={styles.heroSubtitle}>A small, controlled world for ZDOS experiments.</Text>
+      <Pressable accessibilityRole="link" accessibilityLabel="Apri il canale WhatsApp La Nova Avon" onPress={() => void Linking.openURL("https://whatsapp.com/channel/0029Vb7akVkKAwEp2NjB0U0x")} style={({ pressed }) => [styles.partnerLink, pressed && styles.pressed]}>
+        <Text style={styles.partnerLinkText}>In collaborazione con </Text><Text style={styles.partnerLinkName}>La Nova Avon ↗</Text>
+      </Pressable>
 
       <View style={styles.postureCard}>
         <View style={styles.postureTopRow}>
@@ -195,8 +199,8 @@ function HomeHeader({ receiptsCount }: { receiptsCount: number }) {
             <Text style={styles.markerCaption}>NETWORK</Text>
           </View>
           <View style={styles.marker}>
-            <Text style={styles.markerValue}>READ-ONLY</Text>
-            <Text style={styles.markerCaption}>STORAGE</Text>
+            <Text style={styles.markerValue}>LOCAL</Text>
+            <Text style={styles.markerCaption}>QUEUE</Text>
           </View>
         </View>
       </View>
@@ -640,12 +644,12 @@ function ProfileSurface({ onBack, receiptCount }: { onBack: () => void; receiptC
         <View style={styles.nodeCard}>
           <View style={styles.nodeCardTop}>
             <View>
-              <Text style={styles.microLabel}>PRIVATE ZDOS NODE</Text>
+              <Text style={styles.microLabel}>LOCAL APPLICATION PROFILE</Text>
               <Text style={styles.nodeStatus}>{nodeIdentity} · UNLINKED</Text>
             </View>
             <StatusBadge status={nodeIdentity === "IDENTIFIED" ? "VERIFIED" : "ROADMAP"} />
           </View>
-          <Text style={styles.nodeText}>Identity received from the VPS enrollment profile. The Microcosm binding remains off because no authenticated transport has been configured.</Text>
+          <Text style={styles.nodeText}>This profile is local-only. No server address, infrastructure identity or remote transport is stored in the application.</Text>
           <View style={styles.nodeChecklist}>
             <Text style={styles.nodeChecklistItem}>— node name: {node.nodeName}</Text>
             <Text style={styles.nodeChecklistItem}>— node id: {node.nodeId}</Text>
@@ -743,6 +747,9 @@ const styles = StyleSheet.create({
   heroTitle: { color: COLORS.ink, fontSize: 40, lineHeight: 42, fontWeight: "800", letterSpacing: -1.5 },
   heroTitleAccent: { color: COLORS.cyan, fontSize: 40, lineHeight: 42, fontWeight: "800", letterSpacing: -1.5 },
   heroSubtitle: { color: COLORS.muted, fontSize: 14, lineHeight: 21, marginTop: 10, marginBottom: 26, maxWidth: 300 },
+  partnerLink: { flexDirection: "row", alignItems: "center", marginTop: -16, marginBottom: 22 },
+  partnerLinkText: { color: COLORS.muted, fontSize: 11 },
+  partnerLinkName: { color: COLORS.cyan, fontSize: 11, fontWeight: "900", letterSpacing: 0.4 },
   postureCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 18, marginBottom: 28 },
   postureTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   postureTitle: { color: COLORS.lime, fontSize: 28, fontWeight: "800", letterSpacing: 1, marginTop: 4 },
