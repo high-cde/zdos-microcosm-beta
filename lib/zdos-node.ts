@@ -1,6 +1,6 @@
 export type ZdosNodeProfile = {
   schema: "zdos-node/v1";
-  profile: "zdos.microcosm.beta";
+  profile: "zdos.microcosm";
   nodeId: string;
   nodeName: string;
   os: string;
@@ -18,7 +18,7 @@ export type ZdosNodeProfile = {
  */
 export const PRIVATE_ZDOS_NODE: ZdosNodeProfile = {
   schema: "zdos-node/v1",
-  profile: "zdos.microcosm.beta",
+  profile: "zdos.microcosm",
   nodeId: "core-01",
   nodeName: "core-01",
   os: "public-status-only",

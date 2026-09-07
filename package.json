@@ -1,6 +1,6 @@
 {
   "name": "zdos-microcosm-beta",
-  "version": "1.0.0-beta.4",
+  "version": "1.0.0",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {

@@ -48,7 +48,7 @@ export function createReceipt(operation: string, result: DemoResult, id = `${ope
 }
 
 export function computeZtrace(surface: string, receiptCount: number): string {
-  const input = `zdos.microcosm.beta|DEFAULT-DENY|${surface}|${receiptCount}`;
+  const input = `zdos.microcosm|DEFAULT-DENY|${surface}|${receiptCount}`;
   let hash = 2166136261;
   for (let index = 0; index < input.length; index += 1) {
     hash ^= input.charCodeAt(index);

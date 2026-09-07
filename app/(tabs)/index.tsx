@@ -110,25 +110,9 @@ const MENU_CARDS: MenuCard[] = [
     id: "profile",
     index: "06",
     title: "ZDOS Profile",
-    description: "Identità, policy attiva e binding del nodo privato.",
+    description: "Identità pubblica, policy attiva e binding del nodo core-01.",
     status: "ROADMAP",
     accent: COLORS.cyan,
-  },
-  {
-    id: "node",
-    index: "07",
-    title: "Node Pulse",
-    description: "Heartbeat pubblico read-only del nodo First Node core-01.",
-    status: "READY",
-    accent: COLORS.lime,
-  },
-  {
-    id: "zchain",
-    index: "08",
-    title: "Zchain Zlang",
-    description: "Lettura blockchain read-only con profilo Orbot opzionale.",
-    status: "ROADMAP",
-    accent: COLORS.violet,
   },
   {
     id: "zcomm",
@@ -138,6 +122,22 @@ const MENU_CARDS: MenuCard[] = [
     status: "READY",
     accent: COLORS.cyan,
   },
+  {
+    id: "node",
+    index: "08",
+    title: "Node Pulse",
+    description: "Heartbeat pubblico read-only del nodo First Node core-01.",
+    status: "READY",
+    accent: COLORS.lime,
+  },
+  {
+    id: "zchain",
+    index: "09",
+    title: "Zchain Zlang",
+    description: "Lettura blockchain read-only con profilo Orbot opzionale.",
+    status: "ROADMAP",
+    accent: COLORS.violet,
+  },
 ];
 
 const INITIAL_RECEIPTS: Receipt[] = [
@@ -145,7 +145,7 @@ const INITIAL_RECEIPTS: Receipt[] = [
     id: "boot",
     operation: "microcosm.boot",
     status: "READY",
-    detail: "offline beta · local session initialized",
+    detail: "offline-first · local session initialized",
   },
 ];
 
@@ -153,7 +153,7 @@ const INITIAL_TERMINAL: TerminalEntry[] = [
   {
     id: "welcome",
     command: "system",
-    output: "ZDOS Microcosm Beta\nDemo terminal ready. Type help for supported commands.",
+    output: "ZDOS Microcosm\nDemo terminal ready. Type help for supported commands.",
     status: "READY",
   },
 ];
@@ -193,7 +193,7 @@ function HomeHeader({ receiptsCount }: { receiptsCount: number }) {
         <Text style={styles.microLabel}>ZDOS / 01</Text>
         <View style={styles.offlinePill}>
           <View style={styles.offlineDot} />
-          <Text style={styles.offlineText}>OFFLINE BETA</Text>
+          <Text style={styles.offlineText}>LOCAL MODE</Text>
         </View>
       </View>
       <Text style={styles.heroTitle}>ZDOS //</Text>
@@ -469,7 +469,7 @@ function ZlangSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (r
             <Text style={styles.emptyResultText}>Run the validator to create an ACCEPTED or DENIED receipt.</Text>
           </View>
         )}
-        <Text style={styles.disclaimer}>No native compiler runs inside the APK in this beta. Validation is a local profile demonstration.</Text>
+        <Text style={styles.disclaimer}>No native compiler runs inside the APK. Validation is a local profile demonstration.</Text>
       </ScrollView>
     </ScreenContainer>
   );
@@ -527,7 +527,7 @@ function ZretroSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (
           </View>
           <View style={styles.roadmapNote}>
             <StatusBadge status="ROADMAP" />
-            <Text style={styles.roadmapText}>Native backends, emulators and ROM execution are outside this beta.</Text>
+            <Text style={styles.roadmapText}>Native backends, emulators and ROM execution are outside the current product scope.</Text>
           </View>
         </View>
         <Text style={styles.disclaimer}>The preview prepares a text manifest only. It does not launch an emulator or produce a native retro binary.</Text>
@@ -595,7 +595,7 @@ function SecuritySurface({ onBack }: { onBack: () => void }) {
           ))}
         </View>
         <View style={styles.boundaryCard}>
-          <Text style={styles.microLabel}>BETA BOUNDARIES</Text>
+        <Text style={styles.microLabel}>PRODUCT BOUNDARIES</Text>
           <Text style={styles.boundaryText}>No shell Android reale. No rete automatica. No accesso libero al filesystem. No database remoto.</Text>
           <View style={styles.boundaryRule} />
           <Text style={styles.boundaryFoot}>Controlled by design · observable by default</Text>
@@ -733,7 +733,7 @@ function ProfileSurface({ onBack, receiptCount }: { onBack: () => void; receiptC
         <SurfaceHeader title="ZDOS PROFILE" eyebrow="CONTROL PLANE · TRANSPARENT BY DESIGN" onBack={onBack} />
         <View style={styles.profileHero}>
           <Text style={styles.microLabel}>PROFILE ID</Text>
-          <Text style={styles.profileId}>zdos.microcosm.beta</Text>
+          <Text style={styles.profileId}>zdos.microcosm</Text>
           <View style={styles.profileRule} />
           <View style={styles.profilePair}>
             <View style={styles.profilePairBlock}>
@@ -834,7 +834,7 @@ export default function MicrocosmScreen() {
         ListFooterComponent={
           <View style={styles.homeFooter}>
             <Text style={styles.footerTitle}>MICROCOSM / LOCAL BY DESIGN</Text>
-            <Text style={styles.footerText}>A teaching beta. No general-purpose shell, no hidden execution. Node Pulse uses one explicit GET.</Text>
+            <Text style={styles.footerText}>A controlled ZDOS product. No general-purpose shell, no hidden execution. Node Pulse uses one explicit GET.</Text>
             <Text style={styles.footerCode}>ZDOS // v0.1.0 · PROFILE DEFAULT-DENY</Text>
           </View>
         }

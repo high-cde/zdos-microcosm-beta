@@ -4,8 +4,8 @@
 
 | Campo | Valore |
 |---|---|
-| Profile ID | `zdos.microcosm.beta` |
-| Display name | `ZDOS Microcosm Beta` |
+| Profile ID | `zdos.microcosm` |
+| Display name | `ZDOS Microcosm` |
 | Mode | `offline-first / portrait / Android` |
 | Identity | `guest` |
 | Posture | `READY` |
