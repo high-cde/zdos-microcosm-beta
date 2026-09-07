@@ -1,6 +1,6 @@
 # 🧪 ZDOS Microcosm Beta
 
-**ZDOS Microcosm Beta** è una piccola app Expo/React Native offline-first che presenta un menu minimo con i soli progetti ufficiali **ZDOS** e **Zlang**.
+**ZDOS Microcosm Beta** è un’app Expo/React Native offline-first che presenta otto superfici controllate dell’ecosistema **ZDOS** e **Zlang**, con ZComm testuale e nodo read-only opzionale.
 
 🔗 **Punto di ingresso dell’ecosistema:** [x-zdos.it](https://x-zdos.it/)  
 🧩 **Connessioni canoniche:** soltanto repository e superfici ufficiali ZDOS, elencati in [`docs/CONNECTIONS.md`](docs/CONNECTIONS.md).
@@ -11,13 +11,13 @@
 
 | Area | Stato |
 |---|---|
-| Menu principale | Due sole voci: ZDOS e Zlang |
+| Menu principale | Otto superfici Microcosm: Terminal, Zlang, ZRetro, Evidence, Security, Profile, Pulse, Zchain |
 | Interazione | Card apribili, profilo locale richiudibile |
 | Visual design | Palette dark cyan/lime/violet e micro-immagini ASCII |
-| Rete | Negata nella beta |
+| Rete | ZComm HTTPS testuale opzionale; radio e shell negate |
 | Esecuzione | Preview informativa, nessuna shell o processo nativo |
-| Persistenza | Stato locale della schermata; nessun backend |
-| Android | APK release nativo locale compilato; prerelease beta da pubblicare su GitHub |
+| Persistenza | ZChain locale; messaggistica online solo con server configurato |
+| Android | APK standalone beta.8 compilata da `assembleRelease` |
 
 ## 🔭 Funzioni
 
@@ -51,7 +51,7 @@ L’export produce il bundle JavaScript e i metadata Android. **Non produce da s
 
 | Percorso | Ruolo |
 |---|---|
-| `app/(tabs)/index.tsx` | Home minima, menu ZDOS/Zlang e profili locali |
+| `app/(tabs)/index.tsx` | Home Microcosm completa con otto superfici e profili locali |
 | `components/screen-container.tsx` | Safe area comune |
 | `app.config.ts` | Nome, slug, package Android e branding Expo |
 | `assets/images/` | Icona e splash dell’app; non usati come micro-immagini del menu |
@@ -73,12 +73,12 @@ La beta usa un modello `DEFAULT-DENY`: nessun socket, nessuna shell Android, nes
 
 ## 📦 APK nativa beta
 
-La build nativa locale è stata compilata con Gradle. La prerelease GitHub includerà l’APK, il checksum SHA-256, il progetto Android e le note in [`docs/RELEASE_V1.0.0-BETA.3.md`](docs/RELEASE_V1.0.0-BETA.3.md). L’APK non è firmato con un keystore di produzione e non è una release di store.
+La build nativa locale è stata compilata con Gradle per la release `v1.0.0-beta.8`. La prerelease GitHub includerà l’APK, il checksum SHA-256, il progetto Android e le note in [`docs/RELEASE_V1.0.0-BETA.8.md`](docs/RELEASE_V1.0.0-BETA.8.md). L’APK non è firmato con un keystore di produzione e non è una release di store.
 
 Per l’installazione locale:
 
 ```bash
-adb install -r zdos-microcosm-beta-release.apk
+adb install -r zdos-microcosm-beta-1.0.0-beta.8.apk
 ```
 
 La ZChain inclusa è un ledger di evidenza locale: non è una blockchain pubblica e non implementa token, mining, wallet, pagamenti o consenso multi-nodo.
@@ -91,7 +91,7 @@ L’online è limitato a HTTPS/testo: niente modem, radio, socket dal client, tr
 
 ## 🔗 Connessioni univoche
 
-Microcosm usa una allowlist documentale chiusa. I soli riferimenti pubblici ammessi sono l’ecosistema ZDOS e [x-zdos.it](https://x-zdos.it/). Nella beta minima questi collegamenti sono **read-only e documentali**: l’app non effettua chiamate di rete, non sincronizza dati e non importa codice remoto.
+Microcosm usa una allowlist documentale chiusa. I soli riferimenti pubblici ammessi sono l’ecosistema ZDOS e [x-zdos.it](https://x-zdos.it/). Nella modalità locale questi collegamenti sono **read-only e documentali**. La modalità online ZComm e il nodo ZDOS si attivano soltanto con endpoint HTTPS e token configurati nel server, mai nell’APK.
 
 | Superficie | Link canonico | Ruolo |
 |---|---|---|

@@ -3,258 +3,50 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { appendEvidence, createLocalChain, verifyChain, type ZChainEntry } from "@/lib/zchain";
 
-type ProjectId = "zdos" | "zlang";
+type SurfaceId = "terminal" | "zlang" | "zretro" | "evidence" | "security" | "profile" | "pulse" | "zchain";
+type Surface = { id: SurfaceId; number: string; name: string; status: "VERIFIED" | "READY" | "DENIED" | "ROADMAP"; description: string; facts: string[]; color: string };
 
-type Project = {
-  id: ProjectId;
-  number: string;
-  name: string;
-  subtitle: string;
-  status: "VERIFIED" | "PREPARED";
-  description: string;
-  facts: string[];
-};
+const C = { void: "#070A0F", panel: "#101820", panelSoft: "#0C131A", cyan: "#28E6F0", lime: "#B7FF2A", violet: "#8B5CF6", amber: "#F4CE4A", pink: "#F05A8A", ink: "#EAF2F4", muted: "#8A9BA3", line: "#263842" };
 
-const COLORS = {
-  void: "#070A0F",
-  panel: "#101820",
-  panelSoft: "#0C131A",
-  cyan: "#28E6F0",
-  lime: "#B7FF2A",
-  violet: "#8B5CF6",
-  ink: "#EAF2F4",
-  muted: "#8A9BA3",
-  line: "#263842",
-};
-
-const ASCII_ART: Record<ProjectId, string[]> = {
-  zdos: ["  /\\_/\\", " ( o.o )", "  > ^ <"],
-  zlang: ["  .----.", " / ZLB2 \\", " `----´"],
-};
-
-const PROJECTS: Project[] = [
-  {
-    id: "zdos",
-    number: "01",
-    name: "ZDOS",
-    subtitle: "KERNEL / DISTRO / EVIDENCE",
-    status: "VERIFIED",
-    description: "Sistema operativo sperimentale e percorso di build controllato dell’ecosistema ZDOS.",
-    facts: ["Target principale: x86_64", "Build e boot QEMU nel percorso ufficiale", "Policy Evidence Chain disponibile"],
-  },
-  {
-    id: "zlang",
-    number: "02",
-    name: "ZLANG",
-    subtitle: "COMPILER / VM / ZLB2",
-    status: "VERIFIED",
-    description: "Linguaggio, compilatore e runtime collegati al contratto bytecode ZLB2.",
-    facts: ["Contratto ZLB2 v2.5", "Compiler e VM nel repository ufficiale", "Validazione locale soltanto in questa beta"],
-  },
+const SURFACES: Surface[] = [
+  { id: "terminal", number: "01", name: "ZDOS Terminal", status: "VERIFIED", description: "Terminale dimostrativo con catalogo locale e rifiuto esplicito dei comandi pericolosi.", facts: ["Catalogo controllato", "Nessuna shell Android", "Nessun processo remoto"], color: C.cyan },
+  { id: "zlang", number: "02", name: "Zlang Playground", status: "VERIFIED", description: "Valida profili ZLB2 e contratti Zlang by ZDOS senza compilatore nativo.", facts: ["Profilo ZLB2 v2.5", "Output strutturato", "HALT obbligatorio"], color: C.violet },
+  { id: "zretro", number: "03", name: "ZRetro Studio", status: "VERIFIED", description: "Prepara una preview IR testuale per il progetto dimostrativo Meteor Patrol.", facts: ["Manifest testuale", "Preview IR", "Nessun emulatore o ROM"], color: C.violet },
+  { id: "evidence", number: "04", name: "Evidence Chain", status: "READY", description: "Consulta le ricevute generate durante la sessione locale.", facts: ["Hash-linked", "Append-only", "Ledger non monetario"], color: C.amber },
+  { id: "security", number: "05", name: "Security", status: "DENIED", description: "Capability visibili con profilo DEFAULT-DENY e rifiuti osservabili.", facts: ["Rete negata", "Radio negata", "Shell negata"], color: C.pink },
+  { id: "profile", number: "06", name: "ZDOS Profile", status: "ROADMAP", description: "Identità, policy attiva e binding read-only del nodo privato.", facts: ["Node identity informativa", "Binding non configurato", "Token solo server-side"], color: C.cyan },
+  { id: "pulse", number: "07", name: "Node Pulse", status: "READY", description: "Heartbeat pubblico read-only del nodo ZDOS riconosciuto.", facts: ["Health status", "Timeout controllato", "Nessun comando remoto"], color: C.lime },
+  { id: "zchain", number: "08", name: "Zchain Zlang", status: "ROADMAP", description: "Lettura della catena di evidenze con profilo Zlang/ZDOS opzionale.", facts: ["Read-only", "Evidence contract", "Nessun token o wallet"], color: C.violet },
 ];
 
-function StatusBadge({ status }: { status: Project["status"] }) {
-  return (
-    <View style={styles.badge}>
-      <View style={[styles.dot, { backgroundColor: status === "VERIFIED" ? COLORS.lime : COLORS.violet }]} />
-      <Text style={[styles.badgeText, { color: status === "VERIFIED" ? COLORS.lime : COLORS.violet }]}>{status}</Text>
-    </View>
-  );
-}
+function Badge({ surface }: { surface: Surface }) { return <View style={styles.badge}><View style={[styles.dot, { backgroundColor: surface.color }]} /><Text style={[styles.badgeText, { color: surface.color }]}>{surface.status}</Text></View>; }
 
-function AsciiArt({ project }: { project: ProjectId }) {
-  const color = project === "zdos" ? COLORS.cyan : COLORS.violet;
-  return (
-    <View style={[styles.asciiFrame, { borderColor: color }]} accessibilityLabel={`Micro immagine ASCII ${project}`}>
-      {ASCII_ART[project].map((line) => (
-        <Text key={line} style={[styles.asciiLine, { color }]}>{line}</Text>
-      ))}
-    </View>
-  );
-}
-
-function ProjectCard({ project, active, onPress }: { project: Project; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Apri progetto ${project.name}`}
-      onPress={onPress}
-      style={({ pressed }) => [styles.projectCard, active && styles.projectCardActive, pressed && styles.pressed]}
-    >
-      <View style={styles.cardTopRow}>
-        <Text style={styles.cardNumber}>{project.number}</Text>
-        <StatusBadge status={project.status} />
-      </View>
-      <View style={styles.cardIdentity}>
-        <AsciiArt project={project.id} />
-        <View style={styles.cardIdentityText}>
-          <Text style={styles.projectName}>{project.name}</Text>
-          <Text style={styles.projectSubtitle}>{project.subtitle}</Text>
-        </View>
-      </View>
-      <Text style={styles.projectDescription}>{project.description}</Text>
-      <Text style={styles.openLabel}>{active ? "APERTA" : "APRI PROGETTO"}  ↗</Text>
-    </Pressable>
-  );
+function SurfaceCard({ surface, active, onPress }: { surface: Surface; active: boolean; onPress: () => void }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Apri ${surface.name}`} onPress={onPress} style={({ pressed }) => [styles.card, active && { borderColor: surface.color }, pressed && styles.pressed]}>
+    <View style={styles.cardTop}><Text style={[styles.cardNumber, { color: surface.color }]}>{surface.number}</Text><Badge surface={surface} /></View>
+    <View style={styles.cardBody}><View style={[styles.iconBox, { borderColor: surface.color }]}><Text style={[styles.iconText, { color: surface.color }]}>{surface.number}</Text></View><View style={styles.cardCopy}><Text style={styles.cardName}>{surface.name}</Text><Text style={styles.cardDescription}>{surface.description}</Text></View><Text style={[styles.arrow, { color: surface.color }]}>↗</Text></View>
+  </Pressable>;
 }
 
 export default function HomeScreen() {
-  const [selected, setSelected] = useState<ProjectId | null>(null);
+  const [selected, setSelected] = useState<SurfaceId | null>(null);
   const [chain, setChain] = useState<ZChainEntry[]>([]);
   const [chainValid, setChainValid] = useState(false);
-  const project = PROJECTS.find((item) => item.id === selected) ?? null;
-
-  useEffect(() => {
-    let mounted = true;
-    void createLocalChain().then(async (localChain) => {
-      if (!mounted) return;
-      setChain(localChain);
-      setChainValid(await verifyChain(localChain));
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  async function attestProject(projectId: ProjectId) {
-    const next = await appendEvidence(chain, `project.${projectId}.opened`);
-    setChain(next);
-    setChainValid(await verifyChain(next));
-  }
-
-  return (
-    <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.metaRow}>
-          <Text style={styles.eyebrow}>ZDOS / MICROcosm</Text>
-          <View style={styles.offlinePill}>
-            <View style={styles.offlineDot} />
-            <Text style={styles.offlineText}>OFFLINE BETA</Text>
-          </View>
-        </View>
-
-        <Text style={styles.title}>PROJECTS</Text>
-        <Text style={styles.subtitle}>Accesso minimo ai due progetti ufficiali dell’ecosistema.</Text>
-
-        <View style={styles.postureCard}>
-          <View>
-            <Text style={styles.smallLabel}>SYSTEM POSTURE</Text>
-            <Text style={styles.posture}>READY</Text>
-          </View>
-          <View style={styles.ring}><View style={styles.ringInner} /></View>
-          <View style={styles.rule} />
-          <View style={styles.markers}>
-            <View><Text style={styles.markerValue}>LOCAL</Text><Text style={styles.markerCaption}>SESSION</Text></View>
-            <View><Text style={styles.markerValue}>DENIED</Text><Text style={styles.markerCaption}>NETWORK</Text></View>
-            <View><Text style={styles.markerValue}>READ-ONLY</Text><Text style={styles.markerCaption}>UI</Text></View>
-          </View>
-        </View>
-
-        <View style={styles.chainCard}>
-          <View style={styles.chainHeader}>
-            <View>
-              <Text style={styles.smallLabel}>ZCHAIN / LOCAL EVIDENCE</Text>
-              <Text style={styles.chainTitle}>NODE STATUS · {chain.length ? "READY" : "BOOTING"}</Text>
-            </View>
-            <Text style={[styles.chainStatus, { color: chainValid ? COLORS.lime : COLORS.violet }]}>{chainValid ? "VERIFIED" : "CHECKING"}</Text>
-          </View>
-          <View style={styles.rule} />
-          <View style={styles.chainMetrics}>
-            <View><Text style={styles.markerValue}>{chain.length.toString().padStart(2, "0")}</Text><Text style={styles.markerCaption}>ENTRIES</Text></View>
-            <View><Text style={styles.markerValue}>LOCAL</Text><Text style={styles.markerCaption}>CHAIN</Text></View>
-            <View><Text style={styles.markerValue}>DENIED</Text><Text style={styles.markerCaption}>NETWORK</Text></View>
-          </View>
-          <Text style={styles.chainNote}>Ledger non monetario, append-only e verificato offline. Nessun nodo remoto viene contattato.</Text>
-        </View>
-
-        <View style={styles.sectionRow}>
-          <Text style={styles.sectionLabel}>PROJECT MENU</Text>
-          <Text style={styles.sectionCount}>02</Text>
-        </View>
-        <Text style={styles.helper}>Seleziona un progetto per vedere il profilo locale. Nessun comando viene eseguito sul dispositivo.</Text>
-
-        {PROJECTS.map((item) => (
-          <ProjectCard key={item.id} project={item} active={selected === item.id} onPress={() => {
-              setSelected(item.id);
-              void attestProject(item.id);
-            }} />
-        ))}
-
-        {project ? (
-          <View style={styles.detailCard}>
-            <View style={styles.detailHeader}>
-              <View><Text style={styles.smallLabel}>LOCAL PROFILE</Text><Text style={styles.detailTitle}>{project.name}</Text></View>
-              <StatusBadge status={project.status} />
-            </View>
-            <View style={styles.rule} />
-            {project.facts.map((fact) => (
-              <View key={fact} style={styles.factRow}><Text style={styles.factMark}>+</Text><Text style={styles.fact}>{fact}</Text></View>
-            ))}
-            <Text style={styles.note}>Profilo informativo offline. Build, compilazione e runtime nativi restano fuori da questa beta minima.</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Chiudi profilo progetto" onPress={() => setSelected(null)} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
-              <Text style={styles.closeText}>CHIUDI PROFILO</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        <Text style={styles.footer}>ZDOS LAB CONSOLE · MINIMAL BETA · DEFAULT-DENY</Text>
-      </ScrollView>
-    </ScreenContainer>
-  );
+  const active = SURFACES.find((item) => item.id === selected) ?? null;
+  useEffect(() => { let mounted = true; void createLocalChain().then(async (value) => { if (!mounted) return; setChain(value); setChainValid(await verifyChain(value)); }); return () => { mounted = false; }; }, []);
+  async function openSurface(id: SurfaceId) { setSelected(id); const next = await appendEvidence(chain, `microcosm.${id}.opened`); setChain(next); setChainValid(await verifyChain(next)); }
+  return <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background"><ScrollView contentContainerStyle={styles.content}>
+    <View style={styles.metaRow}><Text style={styles.eyebrow}>ZDOS / MICROcosm</Text><View style={styles.pill}><View style={styles.pillDot} /><Text style={styles.pillText}>LOCAL BY DESIGN</Text></View></View>
+    <Text style={styles.title}>MICROCOSM</Text><Text style={styles.subtitle}>Laboratorio controllato per ZDOS, Zlang, ZComm e prove di sistema.</Text>
+    <View style={styles.posture}><View><Text style={styles.label}>SYSTEM POSTURE</Text><Text style={styles.ready}>READY</Text></View><View style={styles.ring}><View style={styles.ringInner} /></View><View style={styles.rule} /><View style={styles.metrics}><View><Text style={styles.value}>LOCAL</Text><Text style={styles.caption}>MODE</Text></View><View><Text style={styles.value}>DENIED</Text><Text style={styles.caption}>UNSAFE</Text></View><View><Text style={styles.value}>ZLANG</Text><Text style={styles.caption}>RUNTIME</Text></View></View></View>
+    <View style={styles.chain}><View style={styles.chainHead}><View><Text style={styles.label}>EVIDENCE CHAIN</Text><Text style={styles.chainTitle}>{chain.length ? "SESSION READY" : "BOOTING"}</Text></View><Text style={[styles.chainStatus, { color: chainValid ? C.lime : C.violet }]}>{chainValid ? "VERIFIED" : "CHECKING"}</Text></View><View style={styles.rule} /><View style={styles.metrics}><View><Text style={styles.value}>{String(chain.length).padStart(2, "0")}</Text><Text style={styles.caption}>RECEIPTS</Text></View><View><Text style={styles.value}>HASH</Text><Text style={styles.caption}>LINKED</Text></View><View><Text style={styles.value}>OFFLINE</Text><Text style={styles.caption}>DEFAULT</Text></View></View></View>
+    <View style={styles.section}><Text style={styles.sectionTitle}>MICROCOSM MENU</Text><Text style={styles.sectionCount}>08</Text></View><Text style={styles.helper}>Superfici locali e read-only. Nessuna shell, radio, wallet o connessione crypto esterna.</Text>
+    {SURFACES.map((surface) => <SurfaceCard key={surface.id} surface={surface} active={selected === surface.id} onPress={() => void openSurface(surface.id)} />)}
+    {active ? <View style={[styles.detail, { borderColor: active.color }]}><View style={styles.detailHead}><View><Text style={styles.label}>SURFACE PROFILE</Text><Text style={styles.detailTitle}>{active.name}</Text></View><Badge surface={active} /></View><View style={styles.rule} />{active.facts.map((fact) => <View key={fact} style={styles.factRow}><Text style={[styles.factMark, { color: active.color }]}>+</Text><Text style={styles.fact}>{fact}</Text></View>)}<Text style={styles.note}>Profilo controllato. Le capability non previste dal contratto vengono negate. Il collegamento online, dove previsto, è HTTPS read-only e richiede configurazione server-side.</Text><Pressable accessibilityRole="button" onPress={() => setSelected(null)} style={styles.close}><Text style={styles.closeText}>CHIUDI PROFILO</Text></Pressable></View> : null}
+    <Text style={styles.footer}>ZDOS LAB CONSOLE · MICROcosm BETA · DEFAULT-DENY</Text>
+  </ScrollView></ScreenContainer>;
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 22, paddingBottom: 40, backgroundColor: COLORS.void, minHeight: "100%" },
-  metaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 28 },
-  eyebrow: { color: COLORS.cyan, fontSize: 12, fontWeight: "700", letterSpacing: 1.4 },
-  offlinePill: { borderWidth: 1, borderColor: COLORS.line, paddingHorizontal: 9, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 6 },
-  offlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.lime },
-  offlineText: { color: COLORS.muted, fontSize: 9, fontWeight: "700", letterSpacing: 1 },
-  title: { color: COLORS.ink, fontSize: 42, fontWeight: "900", letterSpacing: -1, lineHeight: 48 },
-  subtitle: { color: COLORS.muted, fontSize: 15, lineHeight: 22, marginTop: 7, marginBottom: 22, maxWidth: 320 },
-  postureCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 18, marginBottom: 18 },
-  chainCard: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.line, padding: 18, marginBottom: 28 },
-  chainHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  chainTitle: { color: COLORS.ink, fontSize: 17, fontWeight: "900", marginTop: 5 },
-  chainStatus: { fontSize: 10, fontWeight: "900", letterSpacing: 1 },
-  chainMetrics: { flexDirection: "row", justifyContent: "space-between" },
-  chainNote: { color: COLORS.muted, fontSize: 12, lineHeight: 18, marginTop: 16 },
-  smallLabel: { color: COLORS.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1.3 },
-  posture: { color: COLORS.lime, fontSize: 27, fontWeight: "900", marginTop: 4 },
-  ring: { position: "absolute", right: 18, top: 18, width: 42, height: 42, borderRadius: 21, borderWidth: 2, borderColor: COLORS.lime, alignItems: "center", justifyContent: "center" },
-  ringInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.lime },
-  rule: { height: 1, backgroundColor: COLORS.line, marginVertical: 16 },
-  markers: { flexDirection: "row", justifyContent: "space-between" },
-  markerValue: { color: COLORS.ink, fontSize: 11, fontWeight: "800" },
-  markerCaption: { color: COLORS.muted, fontSize: 9, marginTop: 3, letterSpacing: 1 },
-  sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  sectionLabel: { color: COLORS.cyan, fontSize: 11, fontWeight: "900", letterSpacing: 1.5 },
-  sectionCount: { color: COLORS.muted, fontSize: 12, fontWeight: "800" },
-  helper: { color: COLORS.muted, fontSize: 13, lineHeight: 19, marginTop: 8, marginBottom: 14 },
-  projectCard: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.line, padding: 18, marginTop: 10 },
-  projectCardActive: { borderColor: COLORS.cyan },
-  pressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
-  cardTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  cardNumber: { color: COLORS.muted, fontSize: 12, fontWeight: "800" },
-  badge: { flexDirection: "row", alignItems: "center", gap: 6 },
-  dot: { width: 7, height: 7, borderRadius: 4 },
-  badgeText: { fontSize: 10, fontWeight: "900", letterSpacing: 1 },
-  cardIdentity: { flexDirection: "row", alignItems: "center", marginTop: 16, gap: 14 },
-  cardIdentityText: { flex: 1 },
-  asciiFrame: { width: 82, minHeight: 70, borderWidth: 1, paddingVertical: 8, paddingHorizontal: 5, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.void },
-  asciiLine: { fontFamily: "monospace", fontSize: 12, lineHeight: 16, fontWeight: "800" },
-  projectName: { color: COLORS.ink, fontSize: 30, fontWeight: "900" },
-  projectSubtitle: { color: COLORS.cyan, fontSize: 10, fontWeight: "800", letterSpacing: 1, marginTop: 3 },
-  projectDescription: { color: COLORS.muted, fontSize: 14, lineHeight: 20, marginTop: 13 },
-  openLabel: { color: COLORS.lime, fontSize: 11, fontWeight: "900", letterSpacing: 1, marginTop: 18 },
-  detailCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.cyan, padding: 18, marginTop: 18 },
-  detailHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  detailTitle: { color: COLORS.ink, fontSize: 24, fontWeight: "900", marginTop: 5 },
-  factRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 12, gap: 10 },
-  factMark: { color: COLORS.lime, fontSize: 16, fontWeight: "900" },
-  fact: { color: COLORS.ink, fontSize: 14, lineHeight: 20, flex: 1 },
-  note: { color: COLORS.muted, fontSize: 12, lineHeight: 18, marginTop: 4 },
-  closeButton: { borderWidth: 1, borderColor: COLORS.line, padding: 13, alignItems: "center", marginTop: 18 },
-  closeText: { color: COLORS.cyan, fontSize: 11, fontWeight: "900", letterSpacing: 1 },
-  footer: { color: "#4D626A", fontSize: 9, fontWeight: "800", letterSpacing: 1.1, textAlign: "center", marginTop: 30 },
+  content: { padding: 22, paddingBottom: 48, backgroundColor: C.void, minHeight: "100%" }, metaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }, eyebrow: { color: C.cyan, fontSize: 12, fontWeight: "800", letterSpacing: 1.4 }, pill: { borderWidth: 1, borderColor: C.line, paddingHorizontal: 8, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 6 }, pillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.lime }, pillText: { color: C.muted, fontSize: 8, fontWeight: "800", letterSpacing: 1 }, title: { color: C.ink, fontSize: 39, fontWeight: "900", letterSpacing: -1, lineHeight: 45 }, subtitle: { color: C.muted, fontSize: 15, lineHeight: 22, marginTop: 7, marginBottom: 22 }, posture: { backgroundColor: C.panel, borderWidth: 1, borderColor: C.line, padding: 18, marginBottom: 16 }, chain: { backgroundColor: C.panelSoft, borderWidth: 1, borderColor: C.line, padding: 18, marginBottom: 26 }, chainHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }, chainTitle: { color: C.ink, fontSize: 17, fontWeight: "900", marginTop: 5 }, chainStatus: { fontSize: 10, fontWeight: "900", letterSpacing: 1 }, label: { color: C.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1.3 }, ready: { color: C.lime, fontSize: 27, fontWeight: "900", marginTop: 4 }, ring: { position: "absolute", right: 18, top: 18, width: 42, height: 42, borderRadius: 21, borderWidth: 2, borderColor: C.lime, alignItems: "center", justifyContent: "center" }, ringInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: C.lime }, rule: { height: 1, backgroundColor: C.line, marginVertical: 16 }, metrics: { flexDirection: "row", justifyContent: "space-between" }, value: { color: C.ink, fontSize: 11, fontWeight: "800" }, caption: { color: C.muted, fontSize: 9, marginTop: 3, letterSpacing: 1 }, section: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, sectionTitle: { color: C.cyan, fontSize: 11, fontWeight: "900", letterSpacing: 1.5 }, sectionCount: { color: C.muted, fontSize: 12, fontWeight: "800" }, helper: { color: C.muted, fontSize: 13, lineHeight: 19, marginTop: 8, marginBottom: 10 }, card: { backgroundColor: C.panelSoft, borderWidth: 1, borderColor: C.line, padding: 16, marginTop: 9 }, pressed: { opacity: 0.72, transform: [{ scale: 0.99 }] }, cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, cardNumber: { fontSize: 12, fontWeight: "900" }, badge: { flexDirection: "row", alignItems: "center", gap: 6 }, dot: { width: 7, height: 7, borderRadius: 4 }, badgeText: { fontSize: 10, fontWeight: "900", letterSpacing: 1 }, cardBody: { flexDirection: "row", alignItems: "center", marginTop: 12, gap: 12 }, iconBox: { width: 58, height: 58, borderWidth: 2, alignItems: "center", justifyContent: "center" }, iconText: { fontSize: 20, fontWeight: "900" }, cardCopy: { flex: 1 }, cardName: { color: C.ink, fontSize: 20, fontWeight: "900" }, cardDescription: { color: C.muted, fontSize: 13, lineHeight: 18, marginTop: 4 }, arrow: { fontSize: 30, fontWeight: "500" }, detail: { backgroundColor: C.panel, borderWidth: 1, padding: 18, marginTop: 18 }, detailHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, detailTitle: { color: C.ink, fontSize: 24, fontWeight: "900", marginTop: 5 }, factRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 12, gap: 10 }, factMark: { fontSize: 16, fontWeight: "900" }, fact: { color: C.ink, fontSize: 14, lineHeight: 20, flex: 1 }, note: { color: C.muted, fontSize: 12, lineHeight: 18, marginTop: 4 }, close: { borderWidth: 1, borderColor: C.line, padding: 13, alignItems: "center", marginTop: 18 }, closeText: { color: C.cyan, fontSize: 11, fontWeight: "900", letterSpacing: 1 }, footer: { color: "#4D626A", fontSize: 9, fontWeight: "800", letterSpacing: 1.1, textAlign: "center", marginTop: 30 },
 });
