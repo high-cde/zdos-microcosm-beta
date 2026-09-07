@@ -4,6 +4,7 @@ import { computeZtrace, createReceipt, previewZretro, runTerminalCommand, valida
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "../lib/zdos-node";
 import { runTelecomZlang, telecomZlangTemplate } from "../lib/zdos-telecom";
 import { emptyZCommState, queueZCommMessage, runZcommZlang } from "../lib/zdos-zcomm";
+import { appendRuntimeReceipt, createRuntimeState, runtimeStatus, verifyRuntimeState } from "../lib/zdos-runtime";
 
 describe("ZDOS local demo contracts", () => {
   it("returns the bounded system status without executing a shell", () => {
@@ -116,5 +117,23 @@ describe("ZDOS local demo contracts", () => {
     expect(next.pending).toHaveLength(1);
     expect(next.pending[0].body).toBe("ciao microcosmo");
     expect(next.pending[0].pending).toBe(true);
+  });
+
+  it("boots a real local runtime with an explicit default-deny posture", () => {
+    const runtime = createRuntimeState("2026-09-08T00:00:00.000Z");
+    expect(runtime.nodeId).toBe("LOCAL-APP");
+    expect(runtime.transport).toBe("local-only");
+    expect(runtime.remoteExecution).toBe(false);
+    expect(runtime.networkExposure).toBe(false);
+    expect(verifyRuntimeState(runtime)).toBe(true);
+    expect(runtimeStatus(runtime).healthy).toBe(true);
+  });
+
+  it("extends the evidence chain and detects tampering", () => {
+    const runtime = appendRuntimeReceipt(createRuntimeState("2026-09-08T00:00:00.000Z"), { operation: "terminal.status", status: "READY", detail: "posture inspected" }, 123);
+    expect(runtime.receipts).toHaveLength(2);
+    expect(runtime.chainHead).toContain("terminal.status-123");
+    expect(verifyRuntimeState(runtime)).toBe(true);
+    expect(verifyRuntimeState({ ...runtime, posture: "BROKEN" as never })).toBe(false);
   });
 });
