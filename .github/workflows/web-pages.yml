@@ -36,7 +36,7 @@ jobs:
           pnpm check
           pnpm test -- --run
       - name: Export Expo web
-        run: npx expo export --platform web --output-dir dist
+        run: npx expo export --platform web --clear --output-dir dist
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
