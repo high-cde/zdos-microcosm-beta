@@ -220,6 +220,7 @@ Consultare la licenza e le policy del repository per i termini di utilizzo del p
 
 ## Riferimenti
 
+- [Statuto completo ZDOS Microcosm, ZComm e First Node](docs/ZDOS_MICROCOSM_STATUTO.md)
 - [Repository GitHub](https://github.com/high-cde/zdos-microcosm-beta)
 - [Expo](https://expo.dev/)
 - [Expo Router](https://docs.expo.dev/router/introduction/)
