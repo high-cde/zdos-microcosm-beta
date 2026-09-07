@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { registerZcommRoutes } from "../zcomm";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -31,30 +32,31 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  // Enable CORS for all routes - reflect the request origin to support credentials
+  const corsOrigins = new Set((process.env.ZCOMM_ORIGINS ?? "").split(",").map((value) => value.trim()).filter(Boolean));
+  app.disable("x-powered-by");
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (origin) {
+    if (origin && corsOrigins.has(origin)) {
       res.header("Access-Control-Allow-Origin", origin);
+      res.header("Access-Control-Allow-Credentials", "true");
+      res.header("Vary", "Origin");
     }
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Content-Type, Accept, Authorization",
-    );
-    res.header("Access-Control-Allow-Credentials", "true");
-
-    // Handle preflight requests
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization");
+    res.header("X-Content-Type-Options", "nosniff");
+    res.header("Referrer-Policy", "no-referrer");
+    res.header("Cache-Control", "no-store");
     if (req.method === "OPTIONS") {
-      res.sendStatus(200);
+      res.sendStatus(origin && corsOrigins.has(origin) ? 204 : 403);
       return;
     }
     next();
   });
 
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  app.use(express.json({ limit: "256kb" }));
+  app.use(express.urlencoded({ limit: "256kb", extended: true }));
 
+  registerZcommRoutes(app);
   registerStorageProxy(app);
   registerOAuthRoutes(app);
 

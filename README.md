@@ -62,6 +62,8 @@ L’export produce il bundle JavaScript e i metadata Android. **Non produce da s
 | `lib/zchain.ts` | Genesis, evidence append e verifica hash-linked offline |
 | `tests/zchain.test.ts` | Test di integrità e anti-manomissione ZChain |
 | `android/` | Progetto Android nativo generato per la build release |
+| `server/zcomm.ts` | Route ZComm online testuali, policy e rate limit |
+| `docs/ZCOMM-ONLINE.md` | Contratto SIP/Videotel, Zlang e attivazione sicura |
 
 ## 🔒 Confini di sicurezza
 
@@ -78,6 +80,12 @@ adb install -r zdos-microcosm-beta-release.apk
 ```
 
 La ZChain inclusa è un ledger di evidenza locale: non è una blockchain pubblica e non implementa token, mining, wallet, pagamenti o consenso multi-nodo.
+
+## 📡 ZComm online — SIP/Videotel + Zlang by ZDOS
+
+Il repository include un innesto server-side **ZComm online testuale**. Il contratto Videotel/SIP resta invariato: pagine numeriche, navigazione `*123#`, nickname, messaggeria e profilo 40×24. Zlang by ZDOS definisce il contratto `SIP-VIDEO-TEL V23 PAGE-40X24 DEFAULT-DENY HALT`.
+
+L’online è limitato a HTTPS/testo: niente modem, radio, socket dal client, trasmissioni, shell o esecuzione remota. Le route operative richiedono un bearer token, rate limit e sessione; CORS è chiuso per impostazione predefinita. Vedere [`docs/ZCOMM-ONLINE.md`](docs/ZCOMM-ONLINE.md).
 
 ## 🔗 Connessioni univoche
 
