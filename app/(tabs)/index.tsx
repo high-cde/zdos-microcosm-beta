@@ -21,7 +21,7 @@ import {
   type ReceiptStatus,
 } from "@/lib/zdos-demo";
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "@/lib/zdos-node";
-import { runTelecomZlang, telecomZlangTemplate } from "@/lib/zdos-telecom";
+import { normalizeSipUri, runZcommZlang, zcommZlangTemplate, type ZcommCallState } from "@/lib/zcomm";
 
 type Surface = "home" | "terminal" | "zlang" | "zretro" | "telecom" | "evidence" | "security" | "profile";
 
@@ -83,8 +83,8 @@ const MENU_CARDS: MenuCard[] = [
   {
     id: "telecom",
     index: "07",
-    title: "ZComm Telecom",
-    description: "Osserva un profilo telecom Zlang senza trasmettere o aprire socket.",
+    title: "ZComm SIP Videotelefono",
+    description: "Videotelefono SIP configurabile con programma Zlang by zdos e profilo default-deny.",
     status: "READY",
     accent: COLORS.cyan,
   },
@@ -399,64 +399,114 @@ function ZlangSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (r
 }
 
 function TelecomSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
-  const [source, setSource] = useState(telecomZlangTemplate());
-  const [result, setResult] = useState<ReturnType<typeof runTelecomZlang> | null>(null);
+  const [source, setSource] = useState(zcommZlangTemplate());
+  const [sipUri, setSipUri] = useState("sip:utente@example.org");
+  const [result, setResult] = useState<ReturnType<typeof runZcommZlang> | null>(null);
+  const [callState, setCallState] = useState<ZcommCallState>("IDLE");
+  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [audioEnabled, setAudioEnabled] = useState(true);
 
-  const execute = () => {
-    const nextResult = runTelecomZlang(source);
+  const validate = () => {
+    const nextResult = runZcommZlang(source, sipUri);
     setResult(nextResult);
-    onReceipt({ operation: "telecom.zlang", status: nextResult.status, detail: nextResult.detail });
+    onReceipt({ operation: "zcomm.zlang", status: nextResult.status, detail: nextResult.detail });
+    if (nextResult.status === "DENIED") setCallState("DENIED");
+  };
+
+  const prepareCall = () => {
+    if (!normalizeSipUri(sipUri)) {
+      setCallState("DENIED");
+      onReceipt({ operation: "zcomm.call", status: "DENIED", detail: "SIP URI non valido" });
+      return;
+    }
+    setCallState("DIALING");
+    onReceipt({ operation: "zcomm.call.prepare", status: "ACCEPTED", detail: "Local SIP call preparation" });
+  };
+
+  const endCall = () => {
+    setCallState("ENDED");
+    onReceipt({ operation: "zcomm.call.end", status: "READY", detail: "Local call ended" });
   };
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.telecomFlex}>
       <ScrollView contentContainerStyle={styles.surfaceContent} keyboardShouldPersistTaps="handled">
-        <SurfaceHeader title="ZCOMM TELECOM" eyebrow="ZLANG TOOL · LOCAL OBSERVATION" onBack={onBack} />
+        <SurfaceHeader title="ZCOMM SIP VIDEOTELEFONO" eyebrow="ZLANG BY ZDOS · SIP PROFILE" onBack={onBack} />
         <View style={styles.telecomHero}>
           <View style={styles.telecomHeroTop}>
             <View>
-              <Text style={styles.microLabel}>TELECOMMUNICATIONS PROFILE</Text>
-              <Text style={styles.telecomTitle}>OBSERVE ONLY</Text>
+              <Text style={styles.microLabel}>COMMUNICATIONS PROFILE</Text>
+              <Text style={styles.telecomTitle}>VIDEO LINK</Text>
             </View>
-            <StatusBadge status="READY" />
+            <StatusBadge status={callState === "DENIED" ? "DENIED" : "READY"} />
           </View>
           <Text style={styles.telecomDescription}>
-            Un primo tool Zlang per leggere una fixture di collegamento telecom senza radio, socket, rete o trasmissione.
+            ZComm è il videotelefono SIP di ZDOS: prepara una sessione audio/video con un SIP URI, mentre Zlang by zdos governa le capacità in modo esplicito.
           </Text>
           <View style={styles.telecomGrid}>
-            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>LOCAL</Text><Text style={styles.telecomGridLabel}>LINK</Text></View>
-            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>UHF</Text><Text style={styles.telecomGridLabel}>FIXTURE</Text></View>
-            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>DENIED</Text><Text style={styles.telecomGridLabel}>TX</Text></View>
+            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>{callState}</Text><Text style={styles.telecomGridLabel}>CALL STATE</Text></View>
+            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>{videoEnabled ? "VIDEO" : "AUDIO"}</Text><Text style={styles.telecomGridLabel}>MEDIA MODE</Text></View>
+            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>SIP</Text><Text style={styles.telecomGridLabel}>PROTOCOL</Text></View>
           </View>
         </View>
-        <Text style={styles.inputLabel}>ZLANG TELECOM PROGRAM</Text>
+        <Text style={styles.inputLabel}>SIP DESTINATION</Text>
         <TextInput
+          accessibilityLabel="Destinazione SIP"
+          value={sipUri}
+          onChangeText={setSipUri}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          placeholder="sip:utente@example.org"
+          placeholderTextColor="#5D737C"
+          style={styles.sipInput}
+        />
+        <View style={styles.mediaToggleRow}>
+          <Pressable onPress={() => setVideoEnabled((value) => !value)} style={[styles.mediaToggle, videoEnabled && styles.mediaToggleActive]}>
+            <Text style={styles.mediaToggleText}>{videoEnabled ? "VIDEO ON" : "VIDEO OFF"}</Text>
+          </Pressable>
+          <Pressable onPress={() => setAudioEnabled((value) => !value)} style={[styles.mediaToggle, audioEnabled && styles.mediaToggleActive]}>
+            <Text style={styles.mediaToggleText}>{audioEnabled ? "AUDIO ON" : "AUDIO OFF"}</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.inputLabel}>ZLANG BY ZDOS / CALL PROFILE</Text>
+        <TextInput
+          accessibilityLabel="Editor programma Zlang by zdos per zcomm"
           multiline
           value={source}
           onChangeText={setSource}
           autoCapitalize="none"
           autoCorrect={false}
           spellCheck={false}
+          textAlignVertical="top"
           style={styles.telecomCodeInput}
         />
-        <Pressable onPress={execute} style={({ pressed }) => [styles.telecomButton, pressed && styles.telecomButtonPressed]}>
-          <Text style={styles.telecomButtonText}>RUN LOCAL PROFILE</Text>
+        <Pressable onPress={validate} style={({ pressed }) => [styles.telecomButton, pressed && styles.telecomButtonPressed]}>
+          <Text style={styles.telecomButtonText}>VALIDATE ZLANG PROFILE</Text>
           <Text style={styles.telecomButtonArrow}>↗</Text>
         </Pressable>
+        <View style={styles.callActionRow}>
+          <Pressable onPress={prepareCall} style={({ pressed }) => [styles.callButton, pressed && styles.telecomButtonPressed]}>
+            <Text style={styles.callButtonText}>PREPARE SIP CALL</Text>
+          </Pressable>
+          <Pressable onPress={endCall} style={({ pressed }) => [styles.callEndButton, pressed && styles.telecomButtonPressed]}>
+            <Text style={styles.callEndButtonText}>END</Text>
+          </Pressable>
+        </View>
         {result ? (
-          <View style={styles.telecomResultCard}>
+          <View style={[styles.telecomResultCard, result.status === "DENIED" && styles.telecomDeniedCard]}>
             <View style={styles.resultHeaderRow}><Text style={styles.resultEyebrow}>ZCOMM RECEIPT</Text><StatusBadge status={result.status} /></View>
             <Text selectable style={styles.telecomOutput}>{result.output}</Text>
-            <Text style={styles.receiptLink}>local receipt · no network operation attempted</Text>
+            <Text style={styles.receiptLink}>local validation · explicit transport required</Text>
           </View>
-        ) : (
-          <View style={styles.telecomNote}><Text style={styles.telecomNoteText}>Supported profile: status · scan band=uhf · route inspect · tx deny · halt</Text></View>
-        )}
+        ) : null}
+        <View style={styles.telecomNote}>
+          <Text style={styles.telecomNoteText}>SIP URI validation and the call state machine run locally. Actual media transport is enabled only when a compatible SIP/WebRTC transport is configured; this screen never dials silently.</Text>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
 function ZretroSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
   const [manifest, setManifest] = useState("project Meteor Patrol\nscreen 320 200\nscene courtyard");
   const [previewed, setPreviewed] = useState(false);
@@ -869,4 +919,15 @@ const styles = StyleSheet.create({
   telecomOutput: { color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 11, lineHeight: 18 },
   telecomNote: { borderLeftWidth: 2, borderLeftColor: COLORS.amber, marginTop: 18, paddingLeft: 14 },
   telecomNoteText: { color: COLORS.muted, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, lineHeight: 17 },
+  sipInput: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.violet, color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 12, padding: 14, marginBottom: 12 },
+  mediaToggleRow: { flexDirection: "row", gap: 8, marginBottom: 18 },
+  mediaToggle: { flex: 1, minHeight: 42, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: COLORS.line, backgroundColor: COLORS.panelSoft },
+  mediaToggleActive: { borderColor: COLORS.lime, backgroundColor: "#17240E" },
+  mediaToggleText: { color: COLORS.ink, fontSize: 10, fontWeight: "800", letterSpacing: 0.8 },
+  callActionRow: { flexDirection: "row", gap: 8, marginBottom: 18 },
+  callButton: { flex: 1, minHeight: 52, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.lime, paddingHorizontal: 12 },
+  callButtonText: { color: COLORS.void, fontSize: 10, fontWeight: "900", letterSpacing: 0.8 },
+  callEndButton: { minHeight: 52, minWidth: 76, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.red, paddingHorizontal: 12 },
+  callEndButtonText: { color: COLORS.void, fontSize: 10, fontWeight: "900", letterSpacing: 0.8 },
+  telecomDeniedCard: { borderColor: COLORS.red },
 });
