@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { computeZtrace, createReceipt, previewZretro, runTerminalCommand, validateZlang } from "../lib/zdos-demo";
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "../lib/zdos-node";
+import { emptyMeccanincameState, MECCANINCAME_TEMPLATE, pairMeccanincameLocally, runMeccanincameZlang } from "../lib/zdos-meccanincame";
 import { runTelecomZlang, telecomZlangTemplate } from "../lib/zdos-telecom";
-import { emptyZCommState, queueZCommMessage, runZcommZlang } from "../lib/zdos-zcomm";
+import { emptyZCommState, probeZCommAntenna, queueZCommMessage, runZcommZlang, ZCommCbClient } from "../lib/zdos-zcomm";
 
 describe("ZDOS local demo contracts", () => {
   it("returns the bounded system status without executing a shell", () => {
@@ -116,5 +117,35 @@ describe("ZDOS local demo contracts", () => {
     expect(next.pending).toHaveLength(1);
     expect(next.pending[0].body).toBe("ciao microcosmo");
     expect(next.pending[0].pending).toBe(true);
+  });
+
+  it("keeps the antenna unconfigured and local-first without an explicit endpoint", async () => {
+    const antenna = await probeZCommAntenna();
+    expect(antenna.status).toBe("NOT_CONFIGURED");
+    expect(antenna.endpoint).toBeNull();
+    expect(antenna.detail).toContain("local queue remains active");
+  });
+
+  it("denies non-HTTPS antenna endpoints before attempting network access", async () => {
+    const antenna = await probeZCommAntenna("http://vps.example.test");
+    expect(antenna.status).toBe("DENIED");
+    expect(antenna.endpoint).toBeNull();
+    expect(antenna.detail).toContain("HTTPS endpoint required");
+  });
+
+  it("pairs MECCANINCAME locally with no network or shell capability", () => {
+    const paired = pairMeccanincameLocally(emptyMeccanincameState(), "DESKTOP-ZDOS");
+    expect(paired.status).toBe("PAIRED_LOCAL");
+    expect(paired.peerName).toBe("DESKTOP-ZDOS");
+    expect(paired.network).toBe("DENIED");
+    expect(paired.shell).toBe("DENIED");
+    expect(runMeccanincameZlang(MECCANINCAME_TEMPLATE).status).toBe("ACCEPTED");
+    expect(runMeccanincameZlang("exec sh\nmeccanincame.shell allow").status).toBe("DENIED");
+  });
+
+  it("denies insecure CB transports before opening a socket", () => {
+    const client = new ZCommCbClient();
+    expect(client.connect("ws://untrusted.example", () => {})).toBe(false);
+    expect(client.status).toBe("DENIED");
   });
 });

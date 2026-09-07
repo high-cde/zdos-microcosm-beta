@@ -39,6 +39,7 @@ La schermata principale presenta un catalogo di superfici locali. Ogni superfici
 | **07 — Node Pulse** | READY | Mostra un heartbeat pubblico read-only del nodo First Node core-01. |
 | **08 — Zchain Zliang** | ROADMAP | Prevede la lettura blockchain read-only con profilo Orbot opzionale. |
 | **09 — ZComm Videotel** | EXPERIMENTAL | Messaggeria 40×24 local-first in Zlang, con coda offline e sync HTTPS allowlisted. |
+| **08 — MECCANINCAME** | READY | Pairing locale in stile KDE Connect, implementato come profilo Zlang bounded; rete e shell negate. |
 
 ![ZDOS Microcosm — surfaces](docs/screenshots/microcosm-surfaces.jpg)
 
@@ -89,6 +90,12 @@ halt
 
 Il risultato atteso è `ACCEPTED`, con `screen: CEPT 40x24`, coda locale e `transmit: DENIED`. Il parser rifiuta shell, socket, radio, credenziali e comandi non allowlisted. `halt` è obbligatorio per chiudere il profilo. La sincronizzazione è best-effort, retry-safe e fail-closed: se la rete manca, la coda resta disponibile offline.
 
+### MECCANINCAME
+
+`MECCANINCAME` è una superficie locale ispirata al modello di pairing di KDE Connect, ma non implementa il protocollo KDE Connect né apre connessioni esterne. Il pairing è un record bounded nel profilo `zdos-meccanincame/v1`, con sole capability `device.status` e `pair.local`. Il contratto Zlang mostra esplicitamente `network: DENIED`, `shell: DENIED` e `transport: LOCAL_ONLY`; input shell, socket o capability non presenti vengono respinti.
+
+La Home contiene inoltre il pulsante **X-ZDOS.IT**, che apre esclusivamente `https://x-zdos.it` tramite il browser di sistema. Questo è l’unico link web aggiunto da questa modifica; non viene usato come canale nascosto di pairing o controllo remoto.
+
 ### Evidence Chain e ZTRACE
 
 Le operazioni demo possono produrre receipt con identificativo, operazione, stato e dettaglio. `computeZtrace()` genera un fingerprint deterministico della superficie e del numero di receipt. Il trace è un identificatore di sessione per la demo e non deve essere interpretato come firma crittografica o come audit persistente.
@@ -138,7 +145,25 @@ Il progetto adotta un modello **local by design**. La rete è negata nella postu
 
 `ZComm Videotel` è una messaggeria testuale local-first: non sostituisce un modem, uno scanner RF, un client SIP, una radio o un sistema di monitoraggio di rete. Per abilitare il trasporto online impostare `EXPO_PUBLIC_ZCOMM_SYNC_URL` a un endpoint HTTPS sotto il proprio controllo; senza questa variabile l’app resta pienamente utilizzabile offline.
 
-Le funzionalità indicate come `ROADMAP` sono segnali di direzione progettuale. In particolare, il profilo ZDOS, Node Pulse e Zchain Zliang non devono essere interpretati come integrazioni remote o blockchain operative già disponibili nel repository.
+Le funzionalità indicate come `ROADMAP` sono segnali di direzione progettuale. In particolare, il profilo ZDOS e Zchain Zliang non devono essere interpretati come integrazioni remote o blockchain operative già disponibili nel repository.
+
+### Antenna ZComm verso First Node
+
+ZComm può osservare il servizio VPS `zdos-first-node.service` come **antenna comunicativa read-only**. Configurare esplicitamente `EXPO_PUBLIC_ZDOS_FIRST_NODE_URL` con un endpoint HTTPS sotto il proprio controllo. Il pulsante dell’antenna esegue soltanto `GET <endpoint>/v1/status` e accetta il contratto JSON `zdos-node-status/v1` quando contiene `status: ONLINE`, `nodeId` e `nodeName`:
+
+```json
+{"schema":"zdos-node-status/v1","nodeId":"core-01","nodeName":"zdos-first-node","status":"ONLINE","posture":"DEFAULT-DENY","capabilities":["node.status"]}
+```
+
+Un endpoint assente, non HTTPS, non raggiungibile o non verificabile produce `NOT_CONFIGURED`, `DENIED` o `OFFLINE`; in tutti i casi la coda locale resta disponibile. Il bridge non abilita shell remota, socket generici, filesystem remoto o esecuzione di comandi. L’invio dei messaggi resta separato e richiede l’endpoint HTTPS esplicito `EXPO_PUBLIC_ZCOMM_SYNC_URL`.
+
+Per la versione web pubblicata su GitHub Pages, ZComm include anche un **CB realtime** tramite WebSocket sicuro. La variabile `EXPO_PUBLIC_ZCOMM_CB_WS_URL` deve contenere un relay `wss://` della VPS o di un servizio sotto il proprio controllo. Il client accetta soltanto frame JSON `zcomm.cb.message` con `roomId`, `nick`, `body` limitato a 240 caratteri e `createdAt`; URL `ws://`, frame malformati, shell e comandi arbitrari vengono negati. Il workflow Pages legge la variabile GitHub Actions `ZCOMM_CB_WS_URL` e non contiene endpoint o segreti hard-coded.
+
+Esempio di frame CB:
+
+```json
+{"type":"zcomm.cb.message","roomId":"piazza","nick":"ALICE","body":"ciao ZDOS","createdAt":"2026-09-08T00:00:00.000Z"}
+```
 
 ## Sviluppo locale
 
