@@ -193,13 +193,7 @@ pnpm check
 pnpm lint
 ```
 
-Il bundle JavaScript Android già esportato localmente si trova in `dist-android/` e può essere rigenerato con:
-
-```bash
-npx expo export --platform android --output-dir dist-android
-```
-
-La generazione di un APK nativo richiede un ambiente Android SDK/Gradle configurato; questo workspace contiene invece l’export Expo Android e non include una cartella nativa `android/`.
+Il repository non versiona bundle Android o cartelle native generate localmente. La pipeline `.github/workflows/android-apk.yml` esegue installazione frozen, typecheck, test, `expo prebuild` e `assembleRelease`; l’APK viene pubblicato come artifact della run GitHub Actions. La cartella `android/` e gli output `dist-android/` sono generati e ignorati da Git.
 
 ## Direzione del progetto
 
