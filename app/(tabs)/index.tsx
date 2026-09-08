@@ -24,6 +24,7 @@ import { PRIVATE_ZDOS_NODE, nodeBindingState } from "@/lib/zdos-node";
 import { fetchZdosNodeStatus, nodeStatusAsReceiptStatus, type ZdosNodeStatusResult } from "@/lib/zdos-node-status";
 import { ZCHAIN_PROJECT, orbotEndpoint, validateZchainZlang } from "@/lib/zchain-zlang";
 import { servicePageForCode, validateVideotexProgram, VIDEOTEX_ZLANG_SOURCE, ZCOMM_COLUMNS, ZCOMM_ROWS } from "@/lib/zcomm-videotex";
+import { trpc } from "@/lib/trpc";
 
 type Surface = "home" | "terminal" | "zlang" | "zretro" | "evidence" | "security" | "profile" | "node" | "zchain" | "microterm" | "zcomm";
 
@@ -609,13 +610,15 @@ function ZcommVideotelSurface({ onBack, onReceipt }: { onBack: () => void; onRec
   const [serviceCode, setServiceCode] = useState("*01#");
   const [page, setPage] = useState("ZDOS STATUS · core-01 · DEFAULT-DENY");
   const [attested, setAttested] = useState(false);
+  const zcommPageQuery = trpc.zcomm.page.useQuery({ code: serviceCode }, { enabled: false });
 
-  const runSession = () => {
+  const runSession = async () => {
     const program = validateVideotexProgram(VIDEOTEX_ZLANG_SOURCE);
     const accepted = program.every((result) => result.status !== "DENIED");
-    setPage(servicePageForCode(serviceCode));
+    const response = await zcommPageQuery.refetch();
+    setPage(response.data?.found ? `${response.data.title} · ${response.data.rows[0]}` : servicePageForCode(serviceCode));
     setAttested(accepted);
-    onReceipt({ operation: "zcomm.videotex.session", status: accepted ? "VERIFIED" : "DENIED", detail: accepted ? "videotex.session.initialized · local evidence" : "Videotex contract rejected" });
+    onReceipt({ operation: "zcomm.videotex.session", status: accepted ? "VERIFIED" : "DENIED", detail: accepted ? `${response.data?.detail || "local fallback"} · videotex.session.initialized` : "Videotex contract rejected" });
   };
 
   return (
@@ -639,7 +642,7 @@ function ZcommVideotelSurface({ onBack, onReceipt }: { onBack: () => void; onRec
         </View>
         <View style={styles.videotexInputRow}><TextInput accessibilityLabel="Codice servizio ZComm Videotel" value={serviceCode} onChangeText={setServiceCode} placeholder="*01#" placeholderTextColor="#5D737C" autoCapitalize="none" autoCorrect={false} style={styles.videotexInput} /><PrimaryButton label="RUN ZCOMM SESSION" onPress={runSession} accent={COLORS.cyan} /></View>
         <View style={styles.videotexContract}><Text style={styles.microLabel}>NATIVE CONTRACT / videotex.zlang</Text><Text style={styles.videotexSource}>{"status node.profile\nemit [CEPT 40×24 grid]\nstorage.read \".videotex_index\"\nattest videotex.session.initialized"}</Text></View>
-        <Text style={styles.disclaimer}>ZComm è un sottosistema locale e deterministico. Il canale Z-Modem/V.23 è solo emulato nel contratto: non apre socket, non contatta server, non esegue bytecode arbitrario e usa esclusivamente il nodo pubblico reale core-01. L’attestazione è una ricevuta locale, non una firma esterna.</Text>
+        <Text style={styles.disclaimer}>ZComm usa il catalogo HTTPS read-only quando disponibile e mantiene un fallback locale deterministico. Il canale Z-Modem/V.23 è solo emulato: non apre socket, non esegue bytecode arbitrario e usa esclusivamente il nodo pubblico reale core-01. L’attestazione è una ricevuta locale, non una firma esterna.</Text>
       </ScrollView>
     </ScreenContainer>
   );
@@ -680,10 +683,12 @@ function ZchainSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (
 function NodePulseSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
   const [result, setResult] = useState<ZdosNodeStatusResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const nodeStatusQuery = trpc.node.status.useQuery(undefined, { enabled: false });
 
   const refresh = async () => {
     setLoading(true);
-    const nextResult = await fetchZdosNodeStatus();
+    const response = await nodeStatusQuery.refetch();
+    const nextResult = response.data || (await fetchZdosNodeStatus());
     setResult(nextResult);
     onReceipt({ operation: "node.status", status: nodeStatusAsReceiptStatus(nextResult.status), detail: nextResult.detail });
     setLoading(false);

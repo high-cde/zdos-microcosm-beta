@@ -10,6 +10,8 @@ La release `v1.0.0` include **ZComm Videotel**, un sottosistema nativo concettua
 
 **Documentazione ZComm:** [ZComm Z-Videotex](docs/zcomm-videotex.md)
 
+**Microservizi attivi:** Node Status e ZComm Service Directory read-only, esposti tramite API tRPC e mantenuti compatibili con il fallback locale.
+
 ## Limiti intenzionali
 
 Il prodotto non è una shell Android general-purpose. Il micro terminale accetta esclusivamente il profilo Zlang e non esegue programmi o comandi reali. ZComm valida solo il contratto Videotel e rende una griglia fissa locale; non apre socket, non esegue bytecode arbitrario e non contatta server. L’app non accede liberamente al filesystem, non usa account o backend remoti e non include compilatori nativi, emulatori o ROM retro. Zchain è read-only: signing e broadcast sono disabilitati. Orbot è solo un endpoint SOCKS5 configurabile e non viene avviato o controllato dall’app. Le ricevute sono mantenute nello stato React della sessione e la loro persistenza locale è una possibile estensione futura.
@@ -50,6 +52,9 @@ La generazione di un APK nativo richiede un ambiente Android SDK/Gradle configur
 | `lib/zcomm-videotex.ts` | Contratto ZComm Z-Videotex e navigazione `*Pagina#` |
 | `zlang/videotex.zlang` | Specifica sorgente ZLB2 v2.5 del terminale Videotel |
 | `docs/zcomm-videotex.md` | Specifica tecnica, sicurezza e navigazione ZComm |
+| `lib/zcomm-service.ts` | Catalogo ZComm read-only e pagine `*Pagina#` |
+| `server/routers.ts` | Router tRPC per `node.status` e `zcomm.catalog/page` |
+| `docs/microservices-roadmap.md` | Analisi e roadmap dei microservizi Zlang |
 | `tests/zdos-demo.test.ts` | Test unitari del comportamento demo |
 | `app.config.ts` | Nome, slug, orientamento, package Android e branding |
 | `assets/images/` | Icona, splash, favicon e foreground adaptive icon |
