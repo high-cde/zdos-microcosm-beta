@@ -2,13 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { computeZtrace, createReceipt, previewZretro, runTerminalCommand, validateZlang } from "../lib/zdos-demo";
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "../lib/zdos-node";
+import { emptyMeccanincameState, MECCANINCAME_TEMPLATE, pairMeccanincameLocally, runMeccanincameZlang } from "../lib/zdos-meccanincame";
 import { runTelecomZlang, telecomZlangTemplate } from "../lib/zdos-telecom";
-import { emptyZCommState, queueZCommMessage, runZcommZlang } from "../lib/zdos-zcomm";
+import { emptyZCommState, probeZCommAntenna, queueZCommMessage, runZcommZlang, ZCommCbClient } from "../lib/zdos-zcomm";
+import { appendRuntimeReceipt, createRuntimeState, runtimeStatus, verifyRuntimeState } from "../lib/zdos-runtime";
 
 describe("ZDOS local demo contracts", () => {
   it("returns the bounded system status without executing a shell", () => {
     const result = runTerminalCommand("status");
-
     expect(result.status).toBe("READY");
     expect(result.output).toContain("network: denied");
     expect(result.output).toContain("storage: ./workspace only");
@@ -17,7 +18,6 @@ describe("ZDOS local demo contracts", () => {
   it("exposes the telecom tool from the bounded terminal catalog", () => {
     const help = runTerminalCommand("help");
     const telecom = runTerminalCommand("telecom");
-
     expect(help.output).toContain("telecom");
     expect(telecom.status).toBe("READY");
     expect(telecom.output).toContain("transmit: DENIED");
@@ -25,21 +25,18 @@ describe("ZDOS local demo contracts", () => {
 
   it("accepts the supported Zlang emit profile", () => {
     const result = validateZlang("emit ZDOS risponde");
-
     expect(result.status).toBe("ACCEPTED");
     expect(result.detail).toBe("ZLB2 v2.5 · emit · HALT");
   });
 
   it("denies syntax outside the supported Zlang profile", () => {
     const result = validateZlang("exec rm -rf /");
-
     expect(result.status).toBe("DENIED");
     expect(result.detail).toBe("syntax outside supported profile");
   });
 
   it("verifies the local ZRetro preview contract", () => {
     const result = previewZretro("project Meteor Patrol");
-
     expect(result.status).toBe("VERIFIED");
     expect(result.detail).toBe("IR READY · manifest prepared");
   });
@@ -47,7 +44,6 @@ describe("ZDOS local demo contracts", () => {
   it("denies unknown terminal commands and preserves receipt fields", () => {
     const result = runTerminalCommand("open-socket");
     const receipt = createReceipt("terminal.open-socket", result, "receipt-001");
-
     expect(result.status).toBe("DENIED");
     expect(receipt).toEqual({
       id: "receipt-001",
@@ -60,7 +56,6 @@ describe("ZDOS local demo contracts", () => {
   it("creates a stable, non-secret ZTRACE fingerprint for the same session context", () => {
     const first = computeZtrace("profile", 3);
     const second = computeZtrace("profile", 3);
-
     expect(first).toBe(second);
     expect(first).toMatch(/^ZTRACE-[0-9A-F]{8}$/);
     expect(computeZtrace("profile", 4)).not.toBe(first);
@@ -68,7 +63,6 @@ describe("ZDOS local demo contracts", () => {
 
   it("accepts the bounded telecom Zlang profile without performing network operations", () => {
     const result = runTelecomZlang(telecomZlangTemplate());
-
     expect(result.status).toBe("ACCEPTED");
     expect(result.output).toContain("link: LOCAL OBSERVATION");
     expect(result.output).toContain("transmit: DENIED");
@@ -77,14 +71,12 @@ describe("ZDOS local demo contracts", () => {
 
   it("denies telecom syntax outside the supported profile", () => {
     const result = runTelecomZlang("telecom.open socket=radio0\ntelecom.tx send");
-
     expect(result.status).toBe("DENIED");
     expect(result.output).toContain("No radio, socket or network operation attempted.");
   });
 
   it("requires an explicit HALT in the telecom profile", () => {
     const result = runTelecomZlang("telecom.status");
-
     expect(result.status).toBe("DENIED");
     expect(result.detail).toBe("telecom profile requires status and HALT");
   });
@@ -116,5 +108,53 @@ describe("ZDOS local demo contracts", () => {
     expect(next.pending).toHaveLength(1);
     expect(next.pending[0].body).toBe("ciao microcosmo");
     expect(next.pending[0].pending).toBe(true);
+  });
+
+  it("keeps the antenna unconfigured and local-first without an explicit endpoint", async () => {
+    const antenna = await probeZCommAntenna();
+    expect(antenna.status).toBe("NOT_CONFIGURED");
+    expect(antenna.endpoint).toBeNull();
+    expect(antenna.detail).toContain("local queue remains active");
+  });
+
+  it("denies non-HTTPS antenna endpoints before attempting network access", async () => {
+    const antenna = await probeZCommAntenna("http://vps.example.test");
+    expect(antenna.status).toBe("DENIED");
+    expect(antenna.endpoint).toBeNull();
+    expect(antenna.detail).toContain("HTTPS endpoint required");
+  });
+
+  it("pairs MECCANINCAME locally with no network or shell capability", () => {
+    const paired = pairMeccanincameLocally(emptyMeccanincameState(), "DESKTOP-ZDOS");
+    expect(paired.status).toBe("PAIRED_LOCAL");
+    expect(paired.peerName).toBe("DESKTOP-ZDOS");
+    expect(paired.network).toBe("DENIED");
+    expect(paired.shell).toBe("DENIED");
+    expect(runMeccanincameZlang(MECCANINCAME_TEMPLATE).status).toBe("ACCEPTED");
+    expect(runMeccanincameZlang("exec sh\nmeccanincame.shell allow").status).toBe("DENIED");
+  });
+
+  it("denies insecure CB transports before opening a socket", () => {
+    const client = new ZCommCbClient();
+    expect(client.connect("ws://untrusted.example", () => {})).toBe(false);
+    expect(client.status).toBe("DENIED");
+  });
+
+  it("boots a real local runtime with an explicit default-deny posture", () => {
+    const runtime = createRuntimeState("2026-09-08T00:00:00.000Z");
+    expect(runtime.nodeId).toBe("LOCAL-APP");
+    expect(runtime.transport).toBe("local-only");
+    expect(runtime.remoteExecution).toBe(false);
+    expect(runtime.networkExposure).toBe(false);
+    expect(verifyRuntimeState(runtime)).toBe(true);
+    expect(runtimeStatus(runtime).healthy).toBe(true);
+  });
+
+  it("extends the evidence chain and detects tampering", () => {
+    const runtime = appendRuntimeReceipt(createRuntimeState("2026-09-08T00:00:00.000Z"), { operation: "terminal.status", status: "READY", detail: "posture inspected" }, 123);
+    expect(runtime.receipts).toHaveLength(2);
+    expect(runtime.chainHead).toContain("terminal.status-123");
+    expect(verifyRuntimeState(runtime)).toBe(true);
+    expect(verifyRuntimeState({ ...runtime, posture: "BROKEN" as never })).toBe(false);
   });
 });
