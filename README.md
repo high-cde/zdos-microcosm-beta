@@ -91,7 +91,7 @@ Il risultato atteso è `ACCEPTED`, con `screen: CEPT 40x24`, coda locale e `tran
 
 ### Evidence Chain e ZTRACE
 
-Le operazioni demo possono produrre receipt con identificativo, operazione, stato e dettaglio. `computeZtrace()` genera un fingerprint deterministico della superficie e del numero di receipt. Il trace è un identificatore di sessione per la demo e non deve essere interpretato come firma crittografica o come audit persistente.
+Il runtime locale esegue un boot identificabile (`LOCAL-APP`), persiste le receipt su storage del dispositivo e conserva una catena verificabile con `chainHead`. `computeZtrace()` genera un fingerprint deterministico della superficie e del numero di receipt; il trace non è una firma crittografica, ma l’integrità dello stato viene verificata prima del salvataggio. Un archivio corrotto o manomesso viene rifiutato e ricreato con postura DEFAULT-DENY.
 
 ## Profilo e nodo privato
 
@@ -123,6 +123,7 @@ Il progetto usa Expo Router per il routing, React Native/TypeScript per l’appl
 | `app/` | Schermate Expo Router, layout globale e callback OAuth. |
 | `components/` | Componenti visuali riutilizzabili e tematizzati. |
 | `lib/zdos-demo.ts` | Contratti locali per terminale, validazione, preview e receipt. |
+| `lib/zdos-runtime.ts` | Runtime locale persistente: boot, posture DEFAULT-DENY, receipt e integrità della catena. |
 | `lib/zdos-telecom.ts` | Interprete legacy bounded mantenuto per compatibilità del terminale. |
 | `lib/zdos-zcomm.ts` | Runtime ZComm Videotel: profilo Zlang, stanze, coda offline e sync HTTPS. |
 | `lib/zdos-node.ts` | Profilo descrittivo del nodo ZDOS. |
@@ -134,11 +135,11 @@ Il progetto usa Expo Router per il routing, React Native/TypeScript per l’appl
 
 ## Sicurezza e limiti intenzionali
 
-Il progetto adotta un modello **local by design**. La rete è negata nella postura mostrata, mentre i messaggi ZComm vengono salvati localmente in una coda persistente. Le capacità non dichiarate vengono negate. Questi limiti sono parte del comportamento previsto della beta, non errori di configurazione.
+Il progetto adotta un modello **local by design**. Il runtime ZDOS è attivo localmente, con boot identificabile, stato persistente e verifica dell’integrità della catena; la rete è negata nella postura predefinita, mentre i messaggi ZComm vengono salvati localmente in una coda persistente. Le capacità non dichiarate vengono negate. Questi limiti sono parte del comportamento previsto della beta, non errori di configurazione.
 
 `ZComm Videotel` è una messaggeria testuale local-first: non sostituisce un modem, uno scanner RF, un client SIP, una radio o un sistema di monitoraggio di rete. Per abilitare il trasporto online impostare `EXPO_PUBLIC_ZCOMM_SYNC_URL` a un endpoint HTTPS sotto il proprio controllo; senza questa variabile l’app resta pienamente utilizzabile offline.
 
-Le funzionalità indicate come `ROADMAP` sono segnali di direzione progettuale. In particolare, il profilo ZDOS, Node Pulse e Zchain Zliang non devono essere interpretati come integrazioni remote o blockchain operative già disponibili nel repository.
+Le funzionalità indicate come `ROADMAP` sono segnali di direzione progettuale. Node Pulse e Zchain Zliang non sono integrazioni remote o blockchain operative. Il profilo locale `LOCAL-APP` è invece attivo e verificabile, ma non rappresenta ancora un nodo ZDOS remoto.
 
 ## Sviluppo locale
 
@@ -184,7 +185,7 @@ La generazione di un APK nativo richiede un ambiente Android SDK/Gradle configur
 
 ## Direzione del progetto
 
-Le evoluzioni naturali del microcosmo sono la persistenza delle receipt, un audit log server-side, capability grant/revoke espliciti, test end-to-end per OAuth, l’eventuale estensione della navigazione alle superfici roadmap e una definizione formale del modello di minaccia prima di ampliare il trasporto remoto. ZComm resta local-first: la sincronizzazione online non sostituisce la coda locale e non abilita shell, socket generici o trasmissioni radio.
+Le evoluzioni naturali del microcosmo sono un audit log server-side, capability grant/revoke espliciti, test end-to-end per OAuth, l’eventuale estensione della navigazione alle superfici roadmap e una definizione formale del modello di minaccia prima di ampliare il trasporto remoto. ZComm resta local-first: la sincronizzazione online non sostituisce la coda locale e non abilita shell, socket generici o trasmissioni radio.
 
 Fino ad allora, ZDOS // MICROcosm resta ciò che dichiara di essere: **una piccola, controllata e osservabile area di esperimenti ZDOS**.
 
