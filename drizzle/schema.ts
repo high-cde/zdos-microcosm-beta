@@ -25,4 +25,16 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+export const evidenceReceipts = mysqlTable("evidence_receipts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  eventId: varchar("eventId", { length: 128 }).notNull(),
+  operation: varchar("operation", { length: 128 }).notNull(),
+  status: varchar("status", { length: 32 }).notNull(),
+  detail: text("detail").notNull(),
+  ztrace: varchar("ztrace", { length: 32 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type EvidenceReceipt = typeof evidenceReceipts.$inferSelect;
+export type InsertEvidenceReceipt = typeof evidenceReceipts.$inferInsert;

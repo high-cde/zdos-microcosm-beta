@@ -538,10 +538,30 @@ function ZretroSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (
 }
 
 function EvidenceSurface({ onBack, receipts }: { onBack: () => void; receipts: Receipt[] }) {
+  const remoteReceipts = trpc.evidence.list.useQuery(undefined, { retry: false });
+  const appendReceipt = trpc.evidence.append.useMutation();
+  const persisted = (remoteReceipts.data || []).map((item) => ({
+    id: `remote-${item.id}`,
+    operation: item.operation,
+    status: (item.status as Receipt["status"]) || "READY",
+    detail: `${item.detail} · persisted`,
+  }));
+  const visibleReceipts = [...receipts, ...persisted.filter((item) => !receipts.some((local) => local.id === item.id.replace("remote-", "")))];
+
+  const syncReceipts = async () => {
+    await Promise.all(receipts.map((receipt) => appendReceipt.mutateAsync({
+      eventId: receipt.id,
+      operation: receipt.operation,
+      status: receipt.status,
+      detail: receipt.detail,
+    }).catch(() => null)));
+    await remoteReceipts.refetch();
+  };
+
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
       <FlatList
-        data={receipts}
+        data={visibleReceipts}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.surfaceContent}
         ListHeaderComponent={
@@ -550,16 +570,17 @@ function EvidenceSurface({ onBack, receipts }: { onBack: () => void; receipts: R
             <View style={styles.evidenceSummary}>
               <View>
                 <Text style={styles.microLabel}>LOCAL RECEIPTS</Text>
-                <Text style={styles.evidenceCount}>{String(receipts.length).padStart(2, "0")}</Text>
+              <Text style={styles.evidenceCount}>{String(visibleReceipts.length).padStart(2, "0")}</Text>
               </View>
               <Text style={styles.evidenceSummaryText}>hash linked{`\n`}session state</Text>
             </View>
-            <Text style={styles.sectionIntro}>Operations are listed in session order. This chain is demonstrative, not persistent cryptography.</Text>
+            <Text style={styles.sectionIntro}>Operations are listed in session order. Sync stores your own receipts append-only; it never edits or deletes them.</Text>
+            <PrimaryButton label={appendReceipt.isPending ? "SYNCING RECEIPTS..." : "SYNC MY RECEIPTS"} onPress={syncReceipts} accent={COLORS.amber} />
           </View>
         }
         renderItem={({ item }) => <ReceiptCard receipt={item} />}
         ItemSeparatorComponent={() => <View style={styles.listGap} />}
-        ListFooterComponent={<Text style={styles.disclaimer}>Receipts live in React state for this session. AsyncStorage persistence is a future extension.</Text>}
+        ListFooterComponent={<Text style={styles.disclaimer}>{remoteReceipts.isError ? "Login and a configured database are required for persistence; local session receipts remain available." : "Evidence Chain uses append-only storage for the authenticated user. No delete, update or remote execution capability is exposed."}</Text>}
       />
     </ScreenContainer>
   );

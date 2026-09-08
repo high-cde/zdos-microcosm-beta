@@ -10,7 +10,7 @@ La release `v1.0.0` include **ZComm Videotel**, un sottosistema nativo concettua
 
 **Documentazione ZComm:** [ZComm Z-Videotex](docs/zcomm-videotex.md)
 
-**Microservizi attivi:** Node Status e ZComm Service Directory read-only, esposti tramite API tRPC e mantenuti compatibili con il fallback locale.
+**Microservizi attivi:** Node Status e ZComm Service Directory read-only, più Evidence Chain append-only per utente, esposti tramite API tRPC e mantenuti compatibili con il fallback locale.
 
 ## Limiti intenzionali
 
@@ -54,6 +54,8 @@ La generazione di un APK nativo richiede un ambiente Android SDK/Gradle configur
 | `docs/zcomm-videotex.md` | Specifica tecnica, sicurezza e navigazione ZComm |
 | `lib/zcomm-service.ts` | Catalogo ZComm read-only e pagine `*Pagina#` |
 | `server/routers.ts` | Router tRPC per `node.status` e `zcomm.catalog/page` |
+| `zlang/evidence.zlang` | Contratto Zlang append/read-own dell’Evidence Chain |
+| `drizzle/0001_evidence_chain.sql` | Tabella persistente append-only delle ricevute |
 | `docs/microservices-roadmap.md` | Analisi e roadmap dei microservizi Zlang |
 | `tests/zdos-demo.test.ts` | Test unitari del comportamento demo |
 | `app.config.ts` | Nome, slug, orientamento, package Android e branding |

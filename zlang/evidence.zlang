@@ -1,0 +1,11 @@
+# ZDOS Evidence Chain Service
+# Profilo zdos.evidence.append.v1
+
+# Capability: evidence.receipt.append
+storage.append "evidence.receipt"
+
+# Capability: evidence.receipt.read_own
+storage.read "evidence.recent"
+
+# Local session proof; no external signature is implied.
+attest evidence.batch.committed

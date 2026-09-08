@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { EvidenceReceipt, evidenceReceipts, InsertEvidenceReceipt, InsertUser, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,18 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function appendEvidenceReceipt(receipt: InsertEvidenceReceipt): Promise<EvidenceReceipt | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const existing = await db.select().from(evidenceReceipts).where(and(eq(evidenceReceipts.userId, receipt.userId), eq(evidenceReceipts.eventId, receipt.eventId))).limit(1);
+  if (existing.length > 0) return existing[0];
+  await db.insert(evidenceReceipts).values(receipt);
+  const inserted = await db.select().from(evidenceReceipts).where(and(eq(evidenceReceipts.userId, receipt.userId), eq(evidenceReceipts.eventId, receipt.eventId))).limit(1);
+  return inserted[0] || null;
+}
+
+export async function listEvidenceReceipts(userId: number, limit = 100): Promise<EvidenceReceipt[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(evidenceReceipts).where(eq(evidenceReceipts.userId, userId)).orderBy(desc(evidenceReceipts.createdAt)).limit(Math.min(Math.max(limit, 1), 100));
+}

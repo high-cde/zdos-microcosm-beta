@@ -1,10 +1,11 @@
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { fetchZdosNodeStatus } from "../lib/zdos-node-status";
 import { getZcommCatalog, getZcommServicePage } from "../lib/zcomm-service";
 import { z } from "zod";
+import { appendEvidenceReceipt, listEvidenceReceipts } from "./db";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -27,6 +28,17 @@ export const appRouter = router({
   zcomm: router({
     catalog: publicProcedure.query(() => getZcommCatalog()),
     page: publicProcedure.input(z.object({ code: z.string().regex(/^\*\d{2}#$/) })).query(({ input }) => getZcommServicePage(input.code)),
+  }),
+
+  evidence: router({
+    list: protectedProcedure.query(({ ctx }) => listEvidenceReceipts(ctx.user.id)),
+    append: protectedProcedure.input(z.object({
+      eventId: z.string().min(1).max(128),
+      operation: z.string().min(1).max(128),
+      status: z.string().min(1).max(32),
+      detail: z.string().max(2000),
+      ztrace: z.string().max(32).optional(),
+    })).mutation(({ ctx, input }) => appendEvidenceReceipt({ ...input, userId: ctx.user.id })),
   }),
 
 });
