@@ -12,13 +12,38 @@ La release `v1.0.0` include **ZComm Videotel**, un sottosistema nativo concettua
 
 **Microservizi attivi:** Node Status e ZComm Service Directory read-only, Evidence Chain append-only per utente e Zlang Contract Validator non esecutivo, esposti tramite API tRPC e mantenuti compatibili con il fallback locale.
 
+## Microservizi Zlang
+
+I servizi condividono il backend Express/tRPC e applicano una policy `DEFAULT-DENY`. Le procedure disponibili sono:
+
+| API | Contratto Zlang | Accesso | Funzione |
+|---|---|---|---|
+| `node.status` | `status node.profile` | Pubblico, read-only | Stato e heartbeat del nodo `core-01` |
+| `zcomm.catalog` | `status zcomm.catalog` | Pubblico, read-only | Catalogo delle pagine Videotel |
+| `zcomm.page` | `read zcomm.page "*Pagina#"` | Pubblico, read-only | Lettura di una pagina allowlisted |
+| `evidence.list` | `storage.read "evidence.recent"` | Utente autenticato | Lettura delle proprie ricevute |
+| `evidence.append` | `storage.append "evidence.receipt"` | Utente autenticato | Scrittura append-only della propria ricevuta |
+| `zlang.validate` | `validate profile` | Pubblico, non esecutivo | Validazione deterministica del sorgente |
+
+Il validatore riconosce i profili `zdos.zlang.microterm.v1`, `zdos.videotex.native.v1` e `zdos.evidence.append.v1`. Non esiste un endpoint di esecuzione Zlang: ogni istruzione non presente nell’allowlist viene rifiutata.
+
+### Database
+
+La persistenza Evidence Chain richiede `DATABASE_URL` e la migrazione:
+
+```bash
+pnpm db:push
+```
+
+Senza database configurato, l’app mantiene il fallback locale e non perde la funzionalità di sessione.
+
 ## Limiti intenzionali
 
-Il prodotto non è una shell Android general-purpose. Il micro terminale accetta esclusivamente il profilo Zlang e non esegue programmi o comandi reali. ZComm valida solo il contratto Videotel e rende una griglia fissa locale; non apre socket, non esegue bytecode arbitrario e non contatta server. L’app non accede liberamente al filesystem, non usa account o backend remoti e non include compilatori nativi, emulatori o ROM retro. Zchain è read-only: signing e broadcast sono disabilitati. Orbot è solo un endpoint SOCKS5 configurabile e non viene avviato o controllato dall’app. Le ricevute sono mantenute nello stato React della sessione e la loro persistenza locale è una possibile estensione futura.
+Il prodotto non è una shell Android general-purpose. Il micro terminale accetta esclusivamente il profilo Zlang e non esegue programmi o comandi reali. ZComm usa il catalogo HTTPS read-only quando disponibile e mantiene una griglia locale deterministica; non apre socket, non esegue bytecode arbitrario e usa soltanto pagine validate. L’app non accede liberamente al filesystem e non include compilatori nativi, emulatori o ROM retro. Zchain è read-only: signing e broadcast sono disabilitati. Orbot è solo un endpoint SOCKS5 configurabile e non viene avviato o controllato dall’app. Evidence Chain è append-only per utente: non espone cancellazione o aggiornamento delle ricevute.
 
 ## Stack
 
-Il progetto usa Expo SDK 54, React Native 0.81, React 19, Expo Router 6, TypeScript 5.9, NativeWind 4 e Vitest 2.1.9. Il template contiene anche capacità server/database, ma questa release resta locale e non richiede credenziali o servizi esterni. Il profilo `zdos.microcosm` riconosce esclusivamente il nodo pubblico reale `core-01`; il trasporto resta `not-configured` e non viene consentita esecuzione remota. La firma `ZTRACE` è un fingerprint deterministico locale, informativo e non utilizzabile come segreto.
+Il progetto usa Expo SDK 54, React Native 0.81, React 19, Expo Router 6, TypeScript 5.9, NativeWind 4 e Vitest 2.1.9. Il profilo `zdos.microcosm` riconosce esclusivamente il nodo pubblico reale `core-01`; il trasporto di controllo resta disabilitato e non viene consentita esecuzione remota. La firma `ZTRACE` è un fingerprint deterministico locale, informativo e non utilizzabile come segreto.
 
 ## Sviluppo locale
 
@@ -40,7 +65,7 @@ Il bundle JavaScript Android già esportato localmente si trova in `dist-android
 npx expo export --platform android --output-dir dist-android
 ```
 
-La generazione di un APK nativo richiede un ambiente Android SDK/Gradle configurato; questo workspace contiene invece l’export Expo Android verificato e non include una cartella nativa `android/`.
+La build APK production viene generata tramite EAS con il profilo `production`. L’APK stabile è disponibile nella [release GitHub v1.0.0](https://github.com/high-cde/zdos-microcosm-beta/releases/tag/v1.0.0). Le successive modifiche ai microservizi server-side richiedono una nuova build Android per essere incluse nel client.
 
 ## Struttura principale
 
