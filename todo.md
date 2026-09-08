@@ -13,18 +13,18 @@
 - [x] Generate and install custom app icon assets
 - [x] Add unit tests for demo commands, Zlang validation and receipt structure
 - [x] Run TypeScript and Vitest checks
-- [x] Produce a local Android JavaScript bundle export without GitHub publication
+- [x] Define the Android release pipeline without committing generated native or bundle output
 
 ## Known beta limits
 
-- [ ] Local receipts remain session state; ZComm message queue now persists with AsyncStorage
+- [ ] Local receipts remain session state; the ZComm message queue persists with AsyncStorage
 - [ ] No native Zlang compiler, Android shell, emulator, ROM or remote backend
 
 ## GitHub publication
 
 - [x] Optimize generated icon assets for repository size limits
 - [x] Create a private GitHub repository named `zdos-microcosm-beta`
-- [x] Push the prepared source, tests and local Android bundle to GitHub
+- [x] Push the prepared source and tests to GitHub; keep Android outputs in CI artifacts/releases
 - [x] Verify the remote repository contents and privacy setting
 
 ## Profile and private node extension
