@@ -26,7 +26,7 @@ import { emptyMeccanincameState, MECCANINCAME_TEMPLATE, pairMeccanincameLocally,
 import { loadZCommState, probeZCommAntenna, queueZCommMessage, runZcommZlang, syncZCommState, ZCommCbClient, zcommZlangTemplate, type ZCommAntenna, type ZCommCbStatus, type ZCommState } from "@/lib/zdos-zcomm";
 import { appendRuntimeReceipt, createRuntimeState, loadRuntimeState, saveRuntimeState, type ZdosRuntimeState } from "@/lib/zdos-runtime";
 
-type Surface = "home" | "terminal" | "zlang" | "zretro" | "telecom" | "meccanincame" | "evidence" | "security" | "profile";
+type Surface = "home" | "terminal" | "zlang" | "zretro" | "telecom" | "meccanincame" | "monitor" | "evidence" | "security" | "profile";
 
 type TerminalEntry = {
   id: string;
@@ -98,6 +98,14 @@ const MENU_CARDS: MenuCard[] = [
     description: "Pairing locale in stile KDE Connect, solo Zlang by ZDOS.",
     status: "READY",
     accent: COLORS.violet,
+  },
+  {
+    id: "monitor",
+    index: "09",
+    title: "ZRetro Chat Control",
+    description: "Dashboard live read-only del traffico tra terminali zretro.chat.",
+    status: "READY",
+    accent: COLORS.lime,
   },
   {
     id: "evidence",
@@ -538,6 +546,43 @@ function MeccanincameSurface({ onBack, onReceipt }: { onBack: () => void; onRece
   );
 }
 
+function ChatControlSurface({ onBack }: { onBack: () => void }) {
+  const [state, setState] = useState<ZCommState | null>(null);
+  const [lastUpdate, setLastUpdate] = useState("—");
+  useEffect(() => {
+    let mounted = true;
+    const refresh = async () => { const next = await loadZCommState(); if (mounted) { setState(next); setLastUpdate(new Date().toLocaleTimeString()); } };
+    void refresh();
+    const timer = setInterval(() => { void refresh(); }, 1000);
+    return () => { mounted = false; clearInterval(timer); };
+  }, []);
+  const messages = state?.messages.slice().reverse() ?? [];
+  const nodes = Array.from(new Set(messages.map((message) => message.nick))).sort();
+  const chatMessages = messages.filter((message) => message.roomId === "piazza").slice(0, 20);
+  return (
+    <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
+      <ScrollView contentContainerStyle={styles.surfaceContent}>
+        <SurfaceHeader title="ZRETRO CHAT CONTROL" eyebrow="SURFACE / 09 · LIVE LOCAL OBSERVER" onBack={onBack} />
+        <View style={[styles.monitorHero, { borderColor: COLORS.lime }]}>
+          <View style={styles.resultHeaderRow}><Text style={styles.resultEyebrow}>ZRETRO.CHAT / READ-ONLY</Text><StatusBadge status="READY" /></View>
+          <Text style={styles.monitorTitle}>TRAFFIC MATRIX</Text>
+          <Text style={styles.monitorDescription}>Aggiornamento locale ogni secondo. Nessun invio, nessuna mutazione e nessuna rete implicita.</Text>
+          <View style={styles.monitorGrid}>
+            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>{nodes.length}</Text><Text style={styles.telecomGridLabel}>NODES</Text></View>
+            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>{messages.length}</Text><Text style={styles.telecomGridLabel}>EVENTS</Text></View>
+            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>{state?.pending.length ?? 0}</Text><Text style={styles.telecomGridLabel}>PENDING</Text></View>
+          </View>
+        </View>
+        <Text style={styles.monitorUpdated}>LAST POLL · {lastUpdate}</Text>
+        <Text style={styles.inputLabel}>OBSERVED TERMINALS</Text>
+        <View style={styles.nodeMatrix}>{nodes.length ? nodes.map((node) => <View key={node} style={styles.nodeChip}><View style={styles.nodePulse} /><Text style={styles.nodeChipText}>{node}</Text><Text style={styles.nodeState}>LOCAL</Text></View>) : <Text style={styles.telecomNoteText}>Nessun terminale osservato.</Text>}</View>
+        <Text style={styles.inputLabel}>LIVE MESSAGE FEED · PIAZZA</Text>
+        <View style={styles.monitorFeed}>{chatMessages.length ? chatMessages.map((message) => <View key={message.id} style={styles.monitorMessage}><Text style={styles.monitorMeta}>{message.nick} · {message.pending ? "PENDING" : "STORED"}</Text><Text style={styles.monitorBody}>{message.body}</Text></View>) : <Text style={styles.telecomNoteText}>Nessun messaggio zretro.chat disponibile.</Text>}</View>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
 function ZretroSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
   const [manifest, setManifest] = useState("project Meteor Patrol\nscreen 320 200\nscene courtyard");
   const [previewed, setPreviewed] = useState(false);
@@ -753,6 +798,7 @@ export default function MicrocosmScreen() {
   if (surface === "zretro") return <ZretroSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "telecom") return <TelecomSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "meccanincame") return <MeccanincameSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
+  if (surface === "monitor") return <ChatControlSurface onBack={() => setSurface("home")} />;
   if (surface === "evidence") return <EvidenceSurface onBack={() => setSurface("home")} receipts={receipts} />;
   if (surface === "security") return <SecuritySurface onBack={() => setSurface("home")} />;
   if (surface === "profile") return <ProfileSurface onBack={() => setSurface("home")} receiptCount={receipts.length} />;
@@ -954,6 +1000,20 @@ const styles = StyleSheet.create({
   meccanincameButton: { minHeight: 48, justifyContent: "center", backgroundColor: COLORS.violet, paddingHorizontal: 16, marginBottom: 4 },
   meccanincameButtonText: { color: COLORS.ink, fontSize: 11, fontWeight: "900", letterSpacing: 1 },
   telecomHero: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.cyan, padding: 16, marginBottom: 22 },
+  monitorHero: { backgroundColor: COLORS.panel, borderWidth: 1, padding: 16, marginBottom: 14 },
+  monitorTitle: { color: COLORS.lime, fontSize: 25, fontWeight: "800", letterSpacing: 0.5, marginTop: 8 },
+  monitorDescription: { color: COLORS.muted, fontSize: 12, lineHeight: 18, marginTop: 12 },
+  monitorGrid: { flexDirection: "row", borderTopWidth: 1, borderTopColor: COLORS.line, marginTop: 16, paddingTop: 14 },
+  monitorUpdated: { color: COLORS.muted, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, marginBottom: 20 },
+  nodeMatrix: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, paddingHorizontal: 14, marginBottom: 20 },
+  nodeChip: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: COLORS.line, paddingVertical: 13 },
+  nodePulse: { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.lime, marginRight: 10 },
+  nodeChipText: { color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 12, flex: 1 },
+  nodeState: { color: COLORS.lime, fontSize: 9, fontWeight: "800", letterSpacing: 1 },
+  monitorFeed: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, paddingHorizontal: 14 },
+  monitorMessage: { borderBottomWidth: 1, borderBottomColor: COLORS.line, paddingVertical: 12 },
+  monitorMeta: { color: COLORS.cyan, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, fontWeight: "800" },
+  monitorBody: { color: COLORS.ink, fontSize: 12, lineHeight: 18, marginTop: 4 },
   telecomHeroTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
   telecomTitle: { color: COLORS.cyan, fontSize: 25, fontWeight: "800", letterSpacing: 0.5, marginTop: 8 },
   telecomDescription: { color: COLORS.muted, fontSize: 12, lineHeight: 18, marginTop: 15 },
