@@ -407,9 +407,13 @@ function TerminalSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt:
 function ZlangSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
   const [code, setCode] = useState("emit ZDOS risponde");
   const [result, setResult] = useState<DemoResult | null>(null);
+  const validator = trpc.zlang.validate.useQuery({ profile: "zdos.zlang.microterm.v1", source: code }, { enabled: false, retry: false });
 
-  const validate = () => {
-    const nextResult = validateZlang(code);
+  const validate = async () => {
+    const response = await validator.refetch();
+    const nextResult = response.data
+      ? { output: response.data.accepted ? `ALLOWLISTED\n${response.data.operations.join("\n")}` : `DENIED\n${response.data.denied.join("\n")}`, status: response.data.accepted ? "ACCEPTED" as const : "DENIED" as const, detail: `${response.data.detail} · execution ${response.data.execution}` }
+      : validateZlang(code);
     setResult(nextResult);
     onReceipt({ operation: "zlang.validate", status: nextResult.status, detail: nextResult.detail });
   };
@@ -470,7 +474,7 @@ function ZlangSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (r
             <Text style={styles.emptyResultText}>Run the validator to create an ACCEPTED or DENIED receipt.</Text>
           </View>
         )}
-        <Text style={styles.disclaimer}>No native compiler runs inside the APK. Validation is a local profile demonstration.</Text>
+        <Text style={styles.disclaimer}>The Zlang Validator checks an allowlisted profile through a deterministic service when available. It never compiles, evaluates or executes source.</Text>
       </ScrollView>
     </ScreenContainer>
   );

@@ -6,6 +6,7 @@ import { fetchZdosNodeStatus } from "../lib/zdos-node-status";
 import { getZcommCatalog, getZcommServicePage } from "../lib/zcomm-service";
 import { z } from "zod";
 import { appendEvidenceReceipt, listEvidenceReceipts } from "./db";
+import { validateZlangService } from "../lib/zlang-validator-service";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -39,6 +40,10 @@ export const appRouter = router({
       detail: z.string().max(2000),
       ztrace: z.string().max(32).optional(),
     })).mutation(({ ctx, input }) => appendEvidenceReceipt({ ...input, userId: ctx.user.id })),
+  }),
+
+  zlang: router({
+    validate: publicProcedure.input(z.object({ profile: z.string().max(96), source: z.string().max(12000) })).query(({ input }) => validateZlangService(input.profile, input.source)),
   }),
 
 });
