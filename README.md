@@ -98,7 +98,7 @@ La Home contiene inoltre il pulsante **X-ZDOS.IT**, che apre esclusivamente `htt
 
 ### Evidence Chain e ZTRACE
 
-Le operazioni demo possono produrre receipt con identificativo, operazione, stato e dettaglio. `computeZtrace()` genera un fingerprint deterministico della superficie e del numero di receipt. Il trace è un identificatore di sessione per la demo e non deve essere interpretato come firma crittografica o come audit persistente.
+Il runtime locale esegue un boot identificabile (`LOCAL-APP`), persiste le receipt su storage del dispositivo e conserva una catena verificabile con `chainHead`. `computeZtrace()` genera un fingerprint deterministico della superficie e del numero di receipt; il trace non è una firma crittografica, ma l’integrità dello stato viene verificata prima del salvataggio. Un archivio corrotto o manomesso viene rifiutato e ricreato con postura DEFAULT-DENY.
 
 ## Profilo e nodo privato
 
@@ -130,6 +130,7 @@ Il progetto usa Expo Router per il routing, React Native/TypeScript per l’appl
 | `app/` | Schermate Expo Router, layout globale e callback OAuth. |
 | `components/` | Componenti visuali riutilizzabili e tematizzati. |
 | `lib/zdos-demo.ts` | Contratti locali per terminale, validazione, preview e receipt. |
+| `lib/zdos-runtime.ts` | Runtime locale persistente: boot, posture DEFAULT-DENY, receipt e integrità della catena. |
 | `lib/zdos-telecom.ts` | Interprete legacy bounded mantenuto per compatibilità del terminale. |
 | `lib/zdos-zcomm.ts` | Runtime ZComm Videotel: profilo Zlang, stanze, coda offline, sync HTTPS e client CB realtime `wss://`. |
 | `lib/zdos-meccanincame.ts` | Pairing locale bounded in stile KDE Connect, senza rete o shell. |
@@ -142,29 +143,21 @@ Il progetto usa Expo Router per il routing, React Native/TypeScript per l’appl
 
 ## Sicurezza e limiti intenzionali
 
-Il progetto adotta un modello **local by design**. La rete è negata nella postura mostrata, mentre i messaggi ZComm vengono salvati localmente in una coda persistente. Le capacità non dichiarate vengono negate. Questi limiti sono parte del comportamento previsto della beta, non errori di configurazione.
+Il progetto adotta un modello **local by design**. Il runtime ZDOS è attivo localmente, con boot identificabile, stato persistente e verifica dell’integrità della catena; la rete è negata nella postura predefinita, mentre i messaggi ZComm vengono salvati localmente in una coda persistente. Le capacità non dichiarate vengono negate. Questi limiti sono parte del comportamento previsto della beta, non errori di configurazione.
 
 `ZComm Videotel` è una messaggeria testuale local-first: non sostituisce un modem, uno scanner RF, un client SIP, una radio o un sistema di monitoraggio di rete. Per abilitare il trasporto online impostare `EXPO_PUBLIC_ZCOMM_SYNC_URL` a un endpoint HTTPS sotto il proprio controllo; senza questa variabile l’app resta pienamente utilizzabile offline.
 
-Le funzionalità indicate come `ROADMAP` sono segnali di direzione progettuale. In particolare, il profilo ZDOS e Zchain Zliang non devono essere interpretati come integrazioni remote o blockchain operative già disponibili nel repository.
+Le funzionalità indicate come `ROADMAP` sono segnali di direzione progettuale. Node Pulse e Zchain Zliang non sono integrazioni remote o blockchain operative. Il profilo locale `LOCAL-APP` è invece attivo e verificabile, ma non rappresenta ancora un nodo ZDOS remoto.
 
 ### Antenna ZComm verso First Node
 
-ZComm può osservare il servizio VPS `zdos-first-node.service` come **antenna comunicativa read-only**. Configurare esplicitamente `EXPO_PUBLIC_ZDOS_FIRST_NODE_URL` con un endpoint HTTPS sotto il proprio controllo. Il pulsante dell’antenna esegue soltanto `GET <endpoint>/v1/status` e accetta il contratto JSON `zdos-node-status/v1` quando contiene `status: ONLINE`, `nodeId` e `nodeName`:
-
-```json
-{"schema":"zdos-node-status/v1","nodeId":"core-01","nodeName":"zdos-first-node","status":"ONLINE","posture":"DEFAULT-DENY","capabilities":["node.status"]}
-```
+ZComm può osservare il servizio VPS `zdos-first-node.service` come **antenna comunicativa read-only**. Configurare esplicitamente `EXPO_PUBLIC_ZDOS_FIRST_NODE_URL` con un endpoint HTTPS sotto il proprio controllo. Il pulsante dell’antenna esegue soltanto `GET <endpoint>/v1/status` e accetta il contratto JSON `zdos-node-status/v1` quando contiene `status: ONLINE`, `nodeId` e `nodeName`.
 
 Un endpoint assente, non HTTPS, non raggiungibile o non verificabile produce `NOT_CONFIGURED`, `DENIED` o `OFFLINE`; in tutti i casi la coda locale resta disponibile. Il bridge non abilita shell remota, socket generici, filesystem remoto o esecuzione di comandi. L’invio dei messaggi resta separato e richiede l’endpoint HTTPS esplicito `EXPO_PUBLIC_ZCOMM_SYNC_URL`.
 
-Per la versione web pubblicata su GitHub Pages e per l’APK Android, ZComm include anche un **CB realtime** tramite WebSocket sicuro. La variabile `EXPO_PUBLIC_ZCOMM_CB_WS_URL` deve contenere un relay `wss://` della VPS o di un servizio sotto il proprio controllo. Il client accetta soltanto frame JSON `zcomm.cb.message` con `roomId`, `nick`, `body` limitato a 240 caratteri e `createdAt`; URL `ws://`, frame malformati, shell e comandi arbitrari vengono negati. I workflow Pages e APK leggono la variabile GitHub Actions `ZCOMM_CB_WS_URL` e non contengono endpoint o segreti hard-coded.
+Per la versione web pubblicata su GitHub Pages e per l’APK Android, ZComm include anche un **CB realtime** tramite WebSocket sicuro. La variabile `EXPO_PUBLIC_ZCOMM_CB_WS_URL` deve contenere un relay `wss://` sotto il proprio controllo. Il client accetta soltanto frame JSON `zcomm.cb.message` con `roomId`, `nick`, `body` limitato a 240 caratteri e `createdAt`; URL `ws://`, frame malformati, shell e comandi arbitrari vengono negati. I workflow Pages e APK leggono la variabile GitHub Actions `ZCOMM_CB_WS_URL` e non contengono endpoint o segreti hard-coded.
 
-Esempio di frame CB:
-
-```json
-{"type":"zcomm.cb.message","roomId":"piazza","nick":"ALICE","body":"ciao ZDOS","createdAt":"2026-09-08T00:00:00.000Z"}
-```
+Il runtime locale mantiene boot identificabile, stato persistente e verifica dell’integrità della catena. La persistenza non concede capability aggiuntive e non abilita trasporto remoto, shell o esecuzione arbitraria.
 
 ## Sviluppo locale
 
@@ -210,7 +203,7 @@ La generazione di un APK nativo richiede un ambiente Android SDK/Gradle configur
 
 ## Direzione del progetto
 
-Le evoluzioni naturali del microcosmo sono la persistenza delle receipt, un audit log server-side, capability grant/revoke espliciti, test end-to-end per OAuth, l’eventuale estensione della navigazione alle superfici roadmap e una definizione formale del modello di minaccia prima di ampliare il trasporto remoto. ZComm resta local-first: la sincronizzazione online non sostituisce la coda locale e non abilita shell, socket generici o trasmissioni radio.
+Le evoluzioni naturali del microcosmo sono un audit log server-side, capability grant/revoke espliciti, test end-to-end per OAuth, l’eventuale estensione della navigazione alle superfici roadmap e una definizione formale del modello di minaccia prima di ampliare il trasporto remoto. ZComm resta local-first: la sincronizzazione online non sostituisce la coda locale e non abilita shell, socket generici o trasmissioni radio.
 
 Fino ad allora, ZDOS // MICROcosm resta ciò che dichiara di essere: **una piccola, controllata e osservabile area di esperimenti ZDOS**.
 

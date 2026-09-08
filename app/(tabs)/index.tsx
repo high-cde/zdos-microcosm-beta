@@ -24,6 +24,7 @@ import {
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "@/lib/zdos-node";
 import { emptyMeccanincameState, MECCANINCAME_TEMPLATE, pairMeccanincameLocally, runMeccanincameZlang } from "@/lib/zdos-meccanincame";
 import { loadZCommState, probeZCommAntenna, queueZCommMessage, runZcommZlang, syncZCommState, ZCommCbClient, zcommZlangTemplate, type ZCommAntenna, type ZCommCbStatus, type ZCommState } from "@/lib/zdos-zcomm";
+import { appendRuntimeReceipt, createRuntimeState, loadRuntimeState, saveRuntimeState, type ZdosRuntimeState } from "@/lib/zdos-runtime";
 
 type Surface = "home" | "terminal" | "zlang" | "zretro" | "telecom" | "meccanincame" | "evidence" | "security" | "profile";
 
@@ -121,15 +122,6 @@ const MENU_CARDS: MenuCard[] = [
     description: "Identità, policy attiva e binding del nodo privato.",
     status: "ROADMAP",
     accent: COLORS.cyan,
-  },
-];
-
-const INITIAL_RECEIPTS: Receipt[] = [
-  {
-    id: "boot",
-    operation: "microcosm.boot",
-    status: "READY",
-    detail: "offline beta · local session initialized",
   },
 ];
 
@@ -740,14 +732,21 @@ function ProfileSurface({ onBack, receiptCount }: { onBack: () => void; receiptC
 
 export default function MicrocosmScreen() {
   const [surface, setSurface] = useState<Surface>("home");
-  const [receipts, setReceipts] = useState<Receipt[]>(INITIAL_RECEIPTS);
+  const [runtime, setRuntime] = useState<ZdosRuntimeState>(() => createRuntimeState());
+
+  useEffect(() => {
+    void loadRuntimeState().then(setRuntime);
+  }, []);
 
   const addReceipt = (receipt: Omit<Receipt, "id">) => {
-    setReceipts((previous) => [
-      ...previous,
-      { ...receipt, id: `${receipt.operation}-${Date.now()}` },
-    ]);
+    setRuntime((previous) => {
+      const next = appendRuntimeReceipt(previous, receipt);
+      void saveRuntimeState(next).catch(() => undefined);
+      return next;
+    });
   };
+
+  const receipts = runtime.receipts;
 
   if (surface === "terminal") return <TerminalSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "zlang") return <ZlangSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
