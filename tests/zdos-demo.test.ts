@@ -5,6 +5,7 @@ import { PRIVATE_ZDOS_NODE, nodeBindingState } from "../lib/zdos-node";
 import { runTelecomZlang, telecomZlangTemplate } from "../lib/zdos-telecom";
 import { emptyZCommState, queueZCommMessage, runZcommZlang } from "../lib/zdos-zcomm";
 import { appendRuntimeReceipt, createRuntimeState, runtimeStatus, verifyRuntimeState } from "../lib/zdos-runtime";
+import { describeCapabilityAction, getLocalOperationalSnapshot } from "../lib/zdos-ops";
 
 describe("ZDOS local demo contracts", () => {
   it("returns the bounded system status without executing a shell", () => {
@@ -135,5 +136,19 @@ describe("ZDOS local demo contracts", () => {
     expect(runtime.chainHead).toContain("terminal.status-123");
     expect(verifyRuntimeState(runtime)).toBe(true);
     expect(verifyRuntimeState({ ...runtime, posture: "BROKEN" as never })).toBe(false);
+  });
+
+  it("exposes a deterministic local operations snapshot with safe degraded states", () => {
+    const snapshot = getLocalOperationalSnapshot();
+    expect(snapshot.posture).toBe("LOCAL / DEFAULT-DENY");
+    expect(snapshot.network).toBe("DENIED");
+    expect(snapshot.gps).toBe("LOCAL-ONLY");
+    expect(snapshot.radio).toBe("OBSERVE-ONLY");
+    expect(snapshot.resources.find((resource) => resource.key === "WTR")?.state).toBe("UNKNOWN");
+  });
+
+  it("keeps radio transmission denied while allowing message preparation", () => {
+    expect(describeCapabilityAction("radio.tx").status).toBe("DENIED");
+    expect(describeCapabilityAction("message.queue").status).toBe("READY");
   });
 });

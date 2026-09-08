@@ -24,6 +24,7 @@ import {
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "@/lib/zdos-node";
 import { loadZCommState, queueZCommMessage, runZcommZlang, syncZCommState, zcommZlangTemplate, type ZCommState } from "@/lib/zdos-zcomm";
 import { appendRuntimeReceipt, createRuntimeState, loadRuntimeState, saveRuntimeState, type ZdosRuntimeState } from "@/lib/zdos-runtime";
+import { getLocalOperationalSnapshot } from "@/lib/zdos-ops";
 
 type Surface = "home" | "terminal" | "zlang" | "zretro" | "telecom" | "monitor" | "evidence" | "security" | "profile";
 
@@ -161,6 +162,38 @@ function SectionLabel({ children }: { children: string }) {
   return <Text style={styles.sectionLabel}>{children}</Text>;
 }
 
+function OperationsPanel() {
+  const snapshot = getLocalOperationalSnapshot();
+  return (
+    <View style={styles.operationsPanel}>
+      <View style={styles.operationsHeader}>
+        <View>
+          <Text style={styles.microLabel}>FIELD OPERATIONS</Text>
+          <Text style={styles.operationsTitle}>LOCAL CONTROL PLANE</Text>
+        </View>
+        <StatusBadge status="READY" />
+      </View>
+      <View style={styles.operationsMetaRow}>
+        <Text style={styles.operationsMeta}>{snapshot.posture}</Text>
+        <Text style={styles.operationsMeta}>{snapshot.network}</Text>
+      </View>
+      <View style={styles.operationsGrid}>
+        {snapshot.resources.map((resource) => (
+          <View key={resource.key} style={styles.operationCell}>
+            <Text style={styles.operationKey}>{resource.key}</Text>
+            <Text style={[styles.operationValue, { color: statusColor(resource.state === "NOMINAL" ? "READY" : resource.state === "DEGRADED" ? "ROADMAP" : "DENIED") }]}>{resource.value}</Text>
+            <Text style={styles.operationLabel}>{resource.detail}</Text>
+          </View>
+        ))}
+      </View>
+      <View style={styles.operationsFooter}>
+        <Text style={styles.operationsFooterText}>GPS {snapshot.gps}</Text>
+        <Text style={styles.operationsFooterText}>RADIO {snapshot.radio}</Text>
+      </View>
+    </View>
+  );
+}
+
 function HomeHeader({ receiptsCount }: { receiptsCount: number }) {
   return (
     <View>
@@ -204,6 +237,8 @@ function HomeHeader({ receiptsCount }: { receiptsCount: number }) {
           </View>
         </View>
       </View>
+
+      <OperationsPanel />
 
       <View style={styles.sectionHeadingRow}>
         <SectionLabel>MICROCOSM SURFACES</SectionLabel>
@@ -811,6 +846,18 @@ const styles = StyleSheet.create({
   marker: { flex: 1 },
   markerValue: { color: COLORS.ink, fontSize: 11, fontWeight: "800", letterSpacing: 0.7 },
   markerCaption: { color: COLORS.muted, fontSize: 9, letterSpacing: 1.2, marginTop: 5 },
+  operationsPanel: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.cyan, padding: 15, marginBottom: 28 },
+  operationsHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 10 },
+  operationsTitle: { color: COLORS.ink, fontSize: 17, fontWeight: "800", letterSpacing: 0.5, marginTop: 7 },
+  operationsMetaRow: { flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderBottomWidth: 1, borderColor: COLORS.line, paddingVertical: 10, marginTop: 14 },
+  operationsMeta: { color: COLORS.cyan, fontSize: 9, fontWeight: "800", letterSpacing: 0.9 },
+  operationsGrid: { flexDirection: "row", gap: 8, marginTop: 13 },
+  operationCell: { flex: 1, backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 10, minHeight: 82 },
+  operationKey: { color: COLORS.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.1 },
+  operationValue: { fontSize: 12, fontWeight: "900", marginTop: 9 },
+  operationLabel: { color: COLORS.muted, fontSize: 9, lineHeight: 13, marginTop: 5 },
+  operationsFooter: { flexDirection: "row", justifyContent: "space-between", marginTop: 13 },
+  operationsFooterText: { color: COLORS.muted, fontSize: 9, fontWeight: "800", letterSpacing: 0.8 },
   sectionHeadingRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
   sectionLabel: { color: COLORS.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1.5 },
   sectionCount: { color: COLORS.cyan, fontSize: 12, fontWeight: "700", letterSpacing: 1 },
