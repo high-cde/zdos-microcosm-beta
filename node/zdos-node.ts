@@ -8,6 +8,7 @@ export type NodeMode = "OBSERVE" | "QUEUE";
 export type NodeReceipt = { id: string; operation: string; status: "READY" | "ACCEPTED" | "DENIED"; detail: string; at: string };
 export type NodeState = { version: 1; nodeId: string; name: string; posture: NodePosture; mode: NodeMode; tx: "DENIED"; network: "LOCAL-ONLY"; receipts: NodeReceipt[] };
 export type RadioFrame = { id: string; adapter: string; direction: "RX"; payload: string; receivedAt: string; verified: false };
+export type ZlangExecution = { status: "EXECUTED" | "DENIED"; output: string; detail: string; steps: string[] };
 
 const DEFAULT_NODE_ID = process.env.ZDOS_NODE_ID || `VPS-${randomUUID().slice(0, 8).toUpperCase()}`;
 const DATA_DIR = process.env.ZDOS_DATA_DIR || "/var/lib/zdos-node";
@@ -56,6 +57,24 @@ export function evaluateZlang(source: string): { status: "ACCEPTED" | "DENIED"; 
   return { status: "ACCEPTED", output: ["ZDOS NODE / LOCAL PROFILE", "posture: DEFAULT-DENY", "network: LOCAL-ONLY", "radio: RX-ONLY", "tx: DENIED", "HALT: linked"].join("\n"), detail: "Zlang node.local program accepted", capabilities };
 }
 
+export function executeZlang(source: string, state: NodeState): ZlangExecution {
+  const validation = evaluateZlang(source);
+  if (validation.status === "DENIED") return { status: "DENIED", output: validation.output, detail: validation.detail, steps: [] };
+  const lines = source.split("\n").map((line) => line.trim().toLowerCase()).filter(Boolean);
+  const steps = lines.filter((line) => line !== "halt" && line !== "evidence.commit");
+  const output = [
+    `node.id: ${state.nodeId}`,
+    `node.posture: ${state.posture}`,
+    `node.mode: ${state.mode}`,
+    "gps: NO-HARDWARE-FIX",
+    "radio: RX-ONLY",
+    "zcomm: LOCAL-QUEUE",
+    "tx: DENIED",
+    "HALT: executed",
+  ];
+  return { status: "EXECUTED", output: output.join("\n"), detail: `executed ${steps.length} safe Zlang step(s)`, steps };
+}
+
 async function readJson(request: IncomingMessage): Promise<Record<string, unknown>> {
   let body = "";
   for await (const chunk of request) body += String(chunk);
@@ -78,6 +97,12 @@ export async function createNodeServer() {
       const result = evaluateZlang(safeText(body.source));
       state = await receipt(state, "zlang.evaluate", result.status, result.detail);
       return send(response, 200, { ...result, node: state.nodeId });
+    }
+    if (request.method === "POST" && url.pathname === "/v1/zlang/execute") {
+      const body = await readJson(request);
+      const result = executeZlang(safeText(body.source), state);
+      state = await receipt(state, "zlang.execute", result.status === "EXECUTED" ? "ACCEPTED" : "DENIED", result.detail);
+      return send(response, result.status === "EXECUTED" ? 200 : 403, { ...result, node: state.nodeId });
     }
     if (request.method === "POST" && url.pathname === "/v1/radio/receive") {
       const body = await readJson(request);
