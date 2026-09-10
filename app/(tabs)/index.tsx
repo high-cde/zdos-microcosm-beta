@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -22,11 +22,10 @@ import {
   type ReceiptStatus,
 } from "@/lib/zdos-demo";
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "@/lib/zdos-node";
-import { loadZCommState, queueZCommMessage, runZcommZlang, syncZCommState, zcommZlangTemplate, type ZCommState } from "@/lib/zdos-zcomm";
-import { appendRuntimeReceipt, createRuntimeState, loadRuntimeState, saveRuntimeState, type ZdosRuntimeState } from "@/lib/zdos-runtime";
-import { getLocalOperationalSnapshot } from "@/lib/zdos-ops";
+import { emptyMeccanincameState, MECCANINCAME_TEMPLATE, pairMeccanincameLocally, runMeccanincameZlang } from "@/lib/zdos-meccanincame";
+import { loadZCommState, probeZCommAntenna, queueZCommMessage, runZcommZlang, syncZCommState, ZCommCbClient, zcommZlangTemplate, type ZCommAntenna, type ZCommCbStatus, type ZCommState } from "@/lib/zdos-zcomm";
 
-type Surface = "home" | "terminal" | "zlang" | "zretro" | "telecom" | "monitor" | "evidence" | "security" | "profile";
+type Surface = "home" | "terminal" | "zlang" | "zretro" | "telecom" | "meccanincame" | "monitor" | "evidence" | "security" | "profile";
 
 type TerminalEntry = {
   id: string;
@@ -92,10 +91,18 @@ const MENU_CARDS: MenuCard[] = [
     accent: COLORS.cyan,
   },
   {
-    id: "monitor",
+    id: "meccanincame",
     index: "08",
+    title: "MECCANINCAME",
+    description: "Pairing locale in stile KDE Connect, solo Zlang by ZDOS.",
+    status: "READY",
+    accent: COLORS.violet,
+  },
+  {
+    id: "monitor",
+    index: "09",
     title: "ZRetro Chat Control",
-    description: "Dashboard live read-only del traffico tra terminali zretro.chat.",
+    description: "Osservatore locale read-only del traffico ZComm.",
     status: "READY",
     accent: COLORS.lime,
   },
@@ -122,6 +129,15 @@ const MENU_CARDS: MenuCard[] = [
     description: "Identità, policy attiva e binding del nodo privato.",
     status: "ROADMAP",
     accent: COLORS.cyan,
+  },
+];
+
+const INITIAL_RECEIPTS: Receipt[] = [
+  {
+    id: "boot",
+    operation: "microcosm.boot",
+    status: "READY",
+    detail: "offline beta · local session initialized",
   },
 ];
 
@@ -162,38 +178,6 @@ function SectionLabel({ children }: { children: string }) {
   return <Text style={styles.sectionLabel}>{children}</Text>;
 }
 
-function OperationsPanel() {
-  const snapshot = getLocalOperationalSnapshot();
-  return (
-    <View style={styles.operationsPanel}>
-      <View style={styles.operationsHeader}>
-        <View>
-          <Text style={styles.microLabel}>FIELD OPERATIONS</Text>
-          <Text style={styles.operationsTitle}>LOCAL CONTROL PLANE</Text>
-        </View>
-        <StatusBadge status="READY" />
-      </View>
-      <View style={styles.operationsMetaRow}>
-        <Text style={styles.operationsMeta}>{snapshot.posture}</Text>
-        <Text style={styles.operationsMeta}>{snapshot.network}</Text>
-      </View>
-      <View style={styles.operationsGrid}>
-        {snapshot.resources.map((resource) => (
-          <View key={resource.key} style={styles.operationCell}>
-            <Text style={styles.operationKey}>{resource.key}</Text>
-            <Text style={[styles.operationValue, { color: statusColor(resource.state === "NOMINAL" ? "READY" : resource.state === "DEGRADED" ? "ROADMAP" : "DENIED") }]}>{resource.value}</Text>
-            <Text style={styles.operationLabel}>{resource.detail}</Text>
-          </View>
-        ))}
-      </View>
-      <View style={styles.operationsFooter}>
-        <Text style={styles.operationsFooterText}>GPS {snapshot.gps}</Text>
-        <Text style={styles.operationsFooterText}>RADIO {snapshot.radio}</Text>
-      </View>
-    </View>
-  );
-}
-
 function HomeHeader({ receiptsCount }: { receiptsCount: number }) {
   return (
     <View>
@@ -209,6 +193,9 @@ function HomeHeader({ receiptsCount }: { receiptsCount: number }) {
       <Text style={styles.heroSubtitle}>A small, controlled world for ZDOS experiments.</Text>
       <Pressable accessibilityRole="link" accessibilityLabel="Apri il canale WhatsApp La Nova Avon" onPress={() => void Linking.openURL("https://whatsapp.com/channel/0029Vb7akVkKAwEp2NjB0U0x")} style={({ pressed }) => [styles.partnerLink, pressed && styles.pressed]}>
         <Text style={styles.partnerLinkText}>In collaborazione con </Text><Text style={styles.partnerLinkName}>La Nova Avon ↗</Text>
+      </Pressable>
+      <Pressable accessibilityRole="link" accessibilityLabel="Apri la webapp x-zdos.it" onPress={() => void Linking.openURL("https://x-zdos.it")} style={({ pressed }) => [styles.webappLink, pressed && styles.pressed]}>
+        <Text style={styles.webappLinkText}>APRI WEBAPP </Text><Text style={styles.webappLinkName}>X-ZDOS.IT ↗</Text>
       </Pressable>
 
       <View style={styles.postureCard}>
@@ -237,8 +224,6 @@ function HomeHeader({ receiptsCount }: { receiptsCount: number }) {
           </View>
         </View>
       </View>
-
-      <OperationsPanel />
 
       <View style={styles.sectionHeadingRow}>
         <SectionLabel>MICROCOSM SURFACES</SectionLabel>
@@ -445,8 +430,13 @@ function TelecomSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: 
   const [nick, setNick] = useState("VISITOR");
   const [syncDetail, setSyncDetail] = useState("local queue loading …");
   const [roomId, setRoomId] = useState("piazza");
+  const [antenna, setAntenna] = useState<ZCommAntenna | null>(null);
+  const [cbStatus, setCbStatus] = useState<ZCommCbStatus>("DISCONNECTED");
+  const cbEndpoint = process.env.EXPO_PUBLIC_ZCOMM_CB_WS_URL ?? "";
+  const cbClient = useRef<ZCommCbClient | null>(null);
 
   useEffect(() => { void loadZCommState().then(setState); }, []);
+  useEffect(() => () => { cbClient.current?.close(); }, []);
 
   const execute = () => {
     const nextResult = runZcommZlang(source);
@@ -454,8 +444,15 @@ function TelecomSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: 
     onReceipt({ operation: "zcomm.zlang", status: nextResult.status, detail: nextResult.detail });
   };
 
-  const sendMessage = async () => { if (!state) return; const next = await queueZCommMessage(state, roomId, nick, body); setState(next); setBody(""); setSyncDetail("queued locally · safe to send when online"); onReceipt({ operation: "zcomm.message.queue", status: "ACCEPTED", detail: "message persisted in offline queue" }); };
+  const sendMessage = async () => { if (!state) return; const next = await queueZCommMessage(state, roomId, nick, body); const sent = cbClient.current?.send({ roomId, nick, body }) ?? false; setState(next); setBody(""); setSyncDetail(sent ? "CB frame sent · local receipt retained" : "queued locally · safe to send when online"); onReceipt({ operation: sent ? "zcomm.cb.send" : "zcomm.message.queue", status: "ACCEPTED", detail: sent ? "bounded message sent over CB" : "message persisted in offline queue" }); };
   const sync = async () => { if (!state) return; const next = await syncZCommState(state, process.env.EXPO_PUBLIC_ZCOMM_SYNC_URL); setState(next.state); setSyncDetail(next.detail); onReceipt({ operation: "zcomm.sync", status: next.state.lastSync ? "ACCEPTED" : "READY", detail: next.detail }); };
+  const checkAntenna = async () => { const next = await probeZCommAntenna(process.env.EXPO_PUBLIC_ZDOS_FIRST_NODE_URL); setAntenna(next); onReceipt({ operation: "zcomm.antenna.status", status: next.status === "CONNECTED" ? "ACCEPTED" : next.status === "DENIED" ? "DENIED" : "READY", detail: next.detail }); };
+  const toggleCb = () => {
+    if (cbClient.current?.status === "CONNECTED" || cbClient.current?.status === "CONNECTING") { cbClient.current.close(setCbStatus); return; }
+    const client = new ZCommCbClient(); cbClient.current = client;
+    client.connect(cbEndpoint, (event) => { if (!state || !state.rooms.some((room) => room.id === event.roomId)) return; setState((current) => current ? { ...current, messages: [...current.messages, { id: `cb-${event.createdAt}-${event.nick}`, roomId: event.roomId, nick: event.nick, body: event.body, createdAt: event.createdAt }] } : current); }, setCbStatus);
+    onReceipt({ operation: "zcomm.cb.connect", status: cbEndpoint.startsWith("wss://") ? "READY" : "DENIED", detail: cbEndpoint.startsWith("wss://") ? "CB connection requested" : "wss:// endpoint not configured" });
+  };
   const activeMessages = state?.messages.filter((message) => message.roomId === roomId).slice(-8) ?? [];
 
   return (
@@ -478,6 +475,18 @@ function TelecomSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: 
             <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>40×24</Text><Text style={styles.telecomGridLabel}>SCREEN</Text></View>
             <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>{state?.pending.length ?? 0}</Text><Text style={styles.telecomGridLabel}>OFFLINE QUEUE</Text></View>
           </View>
+        </View>
+        <View style={styles.antennaCard}>
+          <View style={styles.resultHeaderRow}><Text style={styles.resultEyebrow}>FIRST NODE / ANTENNA</Text><StatusBadge status={antenna?.status === "CONNECTED" ? "ACCEPTED" : antenna?.status === "DENIED" ? "DENIED" : "READY"} /></View>
+          <Text style={styles.antennaTitle}>{antenna?.nodeName ?? "zdos-first-node.service"}</Text>
+          <Text style={styles.antennaDetail}>{antenna?.detail ?? "Non configurata · il nodo VPS non viene contattato automaticamente."}</Text>
+          <Pressable onPress={checkAntenna} style={styles.antennaButton}><Text style={styles.antennaButtonText}>VERIFICA ANTENNA READ-ONLY</Text></Pressable>
+        </View>
+        <View style={styles.cbCard}>
+          <View style={styles.resultHeaderRow}><Text style={styles.resultEyebrow}>CB / ZCOMM REALTIME</Text><StatusBadge status={cbStatus === "CONNECTED" ? "ACCEPTED" : cbStatus === "DENIED" || cbStatus === "ERROR" ? "DENIED" : "READY"} /></View>
+          <Text style={styles.cbDetail}>{cbStatus === "CONNECTED" ? "CB online · frames ZComm bounded" : "Connessione reale disponibile solo con relay wss:// esplicito."}</Text>
+          <Pressable onPress={toggleCb} style={styles.cbButton}><Text style={styles.cbButtonText}>{cbStatus === "CONNECTED" || cbStatus === "CONNECTING" ? "DISCONNECT CB" : "CONNECT CB"}</Text></Pressable>
+          <Text style={styles.cbPolicy}>Policy: TLS WebSocket only · no shell · no arbitrary sockets · max 240 chars</Text>
         </View>
         <Text style={styles.inputLabel}>PAGES / MESSAGGERIE</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.roomScroller}>
@@ -519,44 +528,60 @@ function TelecomSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: 
   );
 }
 
+function MeccanincameSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
+  const [state, setState] = useState(emptyMeccanincameState());
+  const [peer, setPeer] = useState("ZDOS-DESKTOP");
+  const [result, setResult] = useState<ReturnType<typeof runMeccanincameZlang> | null>(null);
+  const pair = () => { const next = pairMeccanincameLocally(state, peer); setState(next); onReceipt({ operation: "meccanincame.pair.local", status: "ACCEPTED", detail: `local peer paired · ${next.peerName}` }); };
+  const execute = () => { const next = runMeccanincameZlang(MECCANINCAME_TEMPLATE); setResult(next); onReceipt({ operation: "meccanincame.zlang", status: next.status, detail: next.detail }); };
+  return (
+    <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
+      <ScrollView contentContainerStyle={styles.surfaceContent} keyboardShouldPersistTaps="handled">
+        <SurfaceHeader title="MECCANINCAME" eyebrow="SURFACE / 08 · LOCAL PAIRING" onBack={onBack} />
+        <View style={styles.meccanincameHero}>
+          <View style={styles.resultHeaderRow}><Text style={styles.resultEyebrow}>ZLANG BY ZDOS</Text><StatusBadge status={state.status === "PAIRED_LOCAL" ? "ACCEPTED" : "READY"} /></View>
+          <Text style={styles.meccanincameTitle}>KDE CONNECT, SANS EXTERNALS</Text>
+          <Text style={styles.meccanincameDescription}>Collegamento tra dispositivi nello stesso profilo locale. Nessuna shell, nessun socket generico, nessun account o connessione esterna.</Text>
+          <View style={styles.meccanincameGrid}><Text style={styles.meccanincameValue}>{state.peerName ?? "—"}</Text><Text style={styles.meccanincameLabel}>LOCAL PEER</Text><Text style={styles.meccanincameValue}>DENIED</Text><Text style={styles.meccanincameLabel}>NETWORK / SHELL</Text></View>
+        </View>
+        <Text style={styles.inputLabel}>LOCAL PEER NAME</Text>
+        <TextInput value={peer} onChangeText={setPeer} autoCapitalize="characters" maxLength={32} style={styles.meccanincameInput} />
+        <Pressable onPress={pair} style={styles.meccanincameButton}><Text style={styles.meccanincameButtonText}>PAIR LOCAL DEVICE</Text></Pressable>
+        <Pressable onPress={execute} style={styles.telecomButton}><Text style={styles.telecomButtonText}>RUN MECCANINCAME ZLANG</Text><Text style={styles.telecomButtonArrow}>↗</Text></Pressable>
+        {result ? <View style={styles.telecomResultCard}><View style={styles.resultHeaderRow}><Text style={styles.resultEyebrow}>LOCAL RECEIPT</Text><StatusBadge status={result.status} /></View><Text selectable style={styles.telecomOutput}>{result.output}</Text></View> : <View style={styles.telecomNote}><Text style={styles.telecomNoteText}>Capability allowlist: device.status · pair.local · network DENIED · shell DENIED</Text></View>}
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
 function ChatControlSurface({ onBack }: { onBack: () => void }) {
   const [state, setState] = useState<ZCommState | null>(null);
   const [lastUpdate, setLastUpdate] = useState("—");
-
   useEffect(() => {
     let mounted = true;
-    const refresh = async () => {
-      const next = await loadZCommState();
-      if (mounted) { setState(next); setLastUpdate(new Date().toLocaleTimeString()); }
-    };
+    const refresh = async () => { const next = await loadZCommState(); if (mounted) { setState(next); setLastUpdate(new Date().toLocaleTimeString()); } };
     void refresh();
     const timer = setInterval(() => { void refresh(); }, 1000);
     return () => { mounted = false; clearInterval(timer); };
   }, []);
-
   const messages = state?.messages.slice().reverse() ?? [];
   const nodes = Array.from(new Set(messages.map((message) => message.nick))).sort();
   const chatMessages = messages.filter((message) => message.roomId === "piazza").slice(0, 20);
-
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
       <ScrollView contentContainerStyle={styles.surfaceContent}>
-        <SurfaceHeader title="ZRETRO CHAT CONTROL" eyebrow="SURFACE / 08 · LIVE LOCAL OBSERVER" onBack={onBack} />
+        <SurfaceHeader title="ZRETRO CHAT CONTROL" eyebrow="SURFACE / 09 · LIVE LOCAL OBSERVER" onBack={onBack} />
         <View style={[styles.monitorHero, { borderColor: COLORS.lime }]}>
-          <View style={styles.resultHeaderRow}><Text style={styles.resultEyebrow}>ZRETRO.CHAT / READ-ONLY</Text><StatusBadge status="READY" /></View>
+          <View style={styles.resultHeaderRow}><Text style={styles.resultEyebrow}>ZCOMM / READ-ONLY</Text><StatusBadge status="READY" /></View>
           <Text style={styles.monitorTitle}>TRAFFIC MATRIX</Text>
           <Text style={styles.monitorDescription}>Aggiornamento locale ogni secondo. Nessun invio, nessuna mutazione e nessuna rete implicita.</Text>
-          <View style={styles.monitorGrid}>
-            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>{nodes.length}</Text><Text style={styles.telecomGridLabel}>NODES</Text></View>
-            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>{messages.length}</Text><Text style={styles.telecomGridLabel}>EVENTS</Text></View>
-            <View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>{state?.pending.length ?? 0}</Text><Text style={styles.telecomGridLabel}>PENDING</Text></View>
-          </View>
+          <View style={styles.monitorGrid}><View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>{nodes.length}</Text><Text style={styles.telecomGridLabel}>NODES</Text></View><View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>{messages.length}</Text><Text style={styles.telecomGridLabel}>EVENTS</Text></View><View style={styles.telecomGridItem}><Text style={styles.telecomGridValue}>{state?.pending.length ?? 0}</Text><Text style={styles.telecomGridLabel}>PENDING</Text></View></View>
         </View>
         <Text style={styles.monitorUpdated}>LAST POLL · {lastUpdate}</Text>
         <Text style={styles.inputLabel}>OBSERVED TERMINALS</Text>
         <View style={styles.nodeMatrix}>{nodes.length ? nodes.map((node) => <View key={node} style={styles.nodeChip}><View style={styles.nodePulse} /><Text style={styles.nodeChipText}>{node}</Text><Text style={styles.nodeState}>LOCAL</Text></View>) : <Text style={styles.telecomNoteText}>Nessun terminale osservato.</Text>}</View>
-        <Text style={styles.inputLabel}>LIVE MESSAGE FEED · PIAZZA</Text>
-        <View style={styles.monitorFeed}>{chatMessages.length ? chatMessages.map((message) => <View key={message.id} style={styles.monitorMessage}><Text style={styles.monitorMeta}>{message.nick} · {message.pending ? "PENDING" : "STORED"}</Text><Text style={styles.monitorBody}>{message.body}</Text></View>) : <Text style={styles.telecomNoteText}>Nessun messaggio zretro.chat disponibile.</Text>}</View>
+        <Text style={styles.inputLabel}>MESSAGE FEED · PIAZZA</Text>
+        <View style={styles.monitorFeed}>{chatMessages.length ? chatMessages.map((message) => <View key={message.id} style={styles.monitorMessage}><Text style={styles.monitorMeta}>{message.nick} · {message.pending ? "PENDING" : "STORED"}</Text><Text style={styles.monitorBody}>{message.body}</Text></View>) : <Text style={styles.telecomNoteText}>Nessun messaggio ZComm disponibile.</Text>}</View>
       </ScrollView>
     </ScreenContainer>
   );
@@ -756,26 +781,20 @@ function ProfileSurface({ onBack, receiptCount }: { onBack: () => void; receiptC
 
 export default function MicrocosmScreen() {
   const [surface, setSurface] = useState<Surface>("home");
-  const [runtime, setRuntime] = useState<ZdosRuntimeState>(() => createRuntimeState());
-
-  useEffect(() => {
-    void loadRuntimeState().then(setRuntime);
-  }, []);
+  const [receipts, setReceipts] = useState<Receipt[]>(INITIAL_RECEIPTS);
 
   const addReceipt = (receipt: Omit<Receipt, "id">) => {
-    setRuntime((previous) => {
-      const next = appendRuntimeReceipt(previous, receipt);
-      void saveRuntimeState(next).catch(() => undefined);
-      return next;
-    });
+    setReceipts((previous) => [
+      ...previous,
+      { ...receipt, id: `${receipt.operation}-${Date.now()}` },
+    ]);
   };
-
-  const receipts = runtime.receipts;
 
   if (surface === "terminal") return <TerminalSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "zlang") return <ZlangSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "zretro") return <ZretroSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "telecom") return <TelecomSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
+  if (surface === "meccanincame") return <MeccanincameSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
   if (surface === "monitor") return <ChatControlSurface onBack={() => setSurface("home")} />;
   if (surface === "evidence") return <EvidenceSurface onBack={() => setSurface("home")} receipts={receipts} />;
   if (surface === "security") return <SecuritySurface onBack={() => setSurface("home")} />;
@@ -836,6 +855,9 @@ const styles = StyleSheet.create({
   partnerLink: { flexDirection: "row", alignItems: "center", marginTop: -16, marginBottom: 22 },
   partnerLinkText: { color: COLORS.muted, fontSize: 11 },
   partnerLinkName: { color: COLORS.cyan, fontSize: 11, fontWeight: "900", letterSpacing: 0.4 },
+  webappLink: { alignSelf: "flex-start", borderWidth: 1, borderColor: COLORS.violet, paddingHorizontal: 12, paddingVertical: 8, marginTop: -12, marginBottom: 18 },
+  webappLinkText: { color: COLORS.muted, fontSize: 10, fontWeight: "800", letterSpacing: 0.7 },
+  webappLinkName: { color: COLORS.violet, fontSize: 10, fontWeight: "900", letterSpacing: 0.7 },
   postureCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 18, marginBottom: 28 },
   postureTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   postureTitle: { color: COLORS.lime, fontSize: 28, fontWeight: "800", letterSpacing: 1, marginTop: 4 },
@@ -846,18 +868,6 @@ const styles = StyleSheet.create({
   marker: { flex: 1 },
   markerValue: { color: COLORS.ink, fontSize: 11, fontWeight: "800", letterSpacing: 0.7 },
   markerCaption: { color: COLORS.muted, fontSize: 9, letterSpacing: 1.2, marginTop: 5 },
-  operationsPanel: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.cyan, padding: 15, marginBottom: 28 },
-  operationsHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 10 },
-  operationsTitle: { color: COLORS.ink, fontSize: 17, fontWeight: "800", letterSpacing: 0.5, marginTop: 7 },
-  operationsMetaRow: { flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderBottomWidth: 1, borderColor: COLORS.line, paddingVertical: 10, marginTop: 14 },
-  operationsMeta: { color: COLORS.cyan, fontSize: 9, fontWeight: "800", letterSpacing: 0.9 },
-  operationsGrid: { flexDirection: "row", gap: 8, marginTop: 13 },
-  operationCell: { flex: 1, backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 10, minHeight: 82 },
-  operationKey: { color: COLORS.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.1 },
-  operationValue: { fontSize: 12, fontWeight: "900", marginTop: 9 },
-  operationLabel: { color: COLORS.muted, fontSize: 9, lineHeight: 13, marginTop: 5 },
-  operationsFooter: { flexDirection: "row", justifyContent: "space-between", marginTop: 13 },
-  operationsFooterText: { color: COLORS.muted, fontSize: 9, fontWeight: "800", letterSpacing: 0.8 },
   sectionHeadingRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
   sectionLabel: { color: COLORS.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1.5 },
   sectionCount: { color: COLORS.cyan, fontSize: 12, fontWeight: "700", letterSpacing: 1 },
@@ -977,21 +987,30 @@ const styles = StyleSheet.create({
   boundaryRule: { height: 1, backgroundColor: COLORS.line, marginVertical: 14 },
   boundaryFoot: { color: COLORS.amber, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10 },
   telecomFlex: { flex: 1 },
-  telecomHero: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.cyan, padding: 16, marginBottom: 22 },
+  meccanincameHero: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.violet, padding: 16, marginBottom: 18 },
+  meccanincameTitle: { color: COLORS.violet, fontSize: 22, fontWeight: "800", letterSpacing: 0.5, marginTop: 8 },
+  meccanincameDescription: { color: COLORS.muted, fontSize: 12, lineHeight: 18, marginTop: 12 },
+  meccanincameGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, borderTopWidth: 1, borderTopColor: COLORS.line, marginTop: 16, paddingTop: 12 },
+  meccanincameValue: { color: COLORS.ink, fontSize: 12, fontWeight: "800", width: "46%" },
+  meccanincameLabel: { color: COLORS.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.1, width: "46%" },
+  meccanincameInput: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.violet, color: COLORS.ink, fontSize: 13, padding: 13, marginBottom: 10 },
+  meccanincameButton: { minHeight: 48, justifyContent: "center", backgroundColor: COLORS.violet, paddingHorizontal: 16, marginBottom: 4 },
+  meccanincameButtonText: { color: COLORS.ink, fontSize: 11, fontWeight: "900", letterSpacing: 1 },
   monitorHero: { backgroundColor: COLORS.panel, borderWidth: 1, padding: 16, marginBottom: 14 },
   monitorTitle: { color: COLORS.lime, fontSize: 25, fontWeight: "800", letterSpacing: 0.5, marginTop: 8 },
   monitorDescription: { color: COLORS.muted, fontSize: 12, lineHeight: 18, marginTop: 12 },
   monitorGrid: { flexDirection: "row", borderTopWidth: 1, borderTopColor: COLORS.line, marginTop: 16, paddingTop: 14 },
   monitorUpdated: { color: COLORS.muted, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, marginBottom: 20 },
-  nodeMatrix: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, paddingHorizontal: 14, marginBottom: 20 },
-  nodeChip: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: COLORS.line, paddingVertical: 13 },
-  nodePulse: { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.lime, marginRight: 10 },
-  nodeChipText: { color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 12, flex: 1 },
-  nodeState: { color: COLORS.lime, fontSize: 9, fontWeight: "800", letterSpacing: 1 },
+  nodeMatrix: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 },
+  nodeChip: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 10, minWidth: 140 },
+  nodePulse: { width: 7, height: 7, backgroundColor: COLORS.lime, marginBottom: 7 },
+  nodeChipText: { color: COLORS.ink, fontSize: 11, fontWeight: "800" },
+  nodeState: { color: COLORS.muted, fontSize: 9, letterSpacing: 1, marginTop: 4 },
   monitorFeed: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, paddingHorizontal: 14 },
   monitorMessage: { borderBottomWidth: 1, borderBottomColor: COLORS.line, paddingVertical: 12 },
   monitorMeta: { color: COLORS.cyan, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10, fontWeight: "800" },
   monitorBody: { color: COLORS.ink, fontSize: 12, lineHeight: 18, marginTop: 4 },
+  telecomHero: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.cyan, padding: 16, marginBottom: 22 },
   telecomHeroTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
   telecomTitle: { color: COLORS.cyan, fontSize: 25, fontWeight: "800", letterSpacing: 0.5, marginTop: 8 },
   telecomDescription: { color: COLORS.muted, fontSize: 12, lineHeight: 18, marginTop: 15 },
@@ -999,6 +1018,16 @@ const styles = StyleSheet.create({
   telecomGridItem: { flex: 1 },
   telecomGridValue: { color: COLORS.ink, fontSize: 13, fontWeight: "800" },
   telecomGridLabel: { color: COLORS.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.1, marginTop: 5 },
+  antennaCard: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.violet, padding: 14, marginBottom: 18 },
+  antennaTitle: { color: COLORS.ink, fontSize: 16, fontWeight: "800", marginTop: 8 },
+  antennaDetail: { color: COLORS.muted, fontSize: 11, lineHeight: 17, marginTop: 7 },
+  antennaButton: { borderWidth: 1, borderColor: COLORS.violet, minHeight: 42, justifyContent: "center", paddingHorizontal: 12, marginTop: 12 },
+  antennaButtonText: { color: COLORS.violet, fontSize: 10, fontWeight: "900", letterSpacing: 0.8 },
+  cbCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.lime, padding: 14, marginBottom: 18 },
+  cbDetail: { color: COLORS.ink, fontSize: 12, lineHeight: 18, marginBottom: 10 },
+  cbButton: { minHeight: 42, justifyContent: "center", backgroundColor: COLORS.lime, paddingHorizontal: 12, marginBottom: 10 },
+  cbButtonText: { color: COLORS.void, fontSize: 11, fontWeight: "900", letterSpacing: 1 },
+  cbPolicy: { color: COLORS.muted, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 9, lineHeight: 15 },
   inputLabel: { color: COLORS.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1.2, marginBottom: 9 },
   telecomCodeInput: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.cyan, color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 12, lineHeight: 20, minHeight: 150, padding: 14, textAlignVertical: "top" },
   telecomButton: { minHeight: 52, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: COLORS.cyan, paddingHorizontal: 16, marginTop: 12, marginBottom: 18 },

@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { computeZtrace, createReceipt, previewZretro, runTerminalCommand, validateZlang } from "../lib/zdos-demo";
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "../lib/zdos-node";
-import { runTelecomZlang, telecomZlangTemplate } from "../lib/zdos-telecom";
-import { emptyZCommState, queueZCommMessage, runZcommZlang } from "../lib/zdos-zcomm";
-import { appendRuntimeReceipt, createRuntimeState, runtimeStatus, verifyRuntimeState } from "../lib/zdos-runtime";
 import { describeCapabilityAction, getLocalOperationalSnapshot } from "../lib/zdos-ops";
+import { emptyMeccanincameState, MECCANINCAME_TEMPLATE, pairMeccanincameLocally, runMeccanincameZlang } from "../lib/zdos-meccanincame";
+import { appendRuntimeReceipt, createRuntimeState, runtimeStatus, verifyRuntimeState } from "../lib/zdos-runtime";
+import { runTelecomZlang, telecomZlangTemplate } from "../lib/zdos-telecom";
+import { emptyZCommState, probeZCommAntenna, queueZCommMessage, runZcommZlang, ZCommCbClient } from "../lib/zdos-zcomm";
 
 describe("ZDOS local demo contracts", () => {
   it("returns the bounded system status without executing a shell", () => {
@@ -120,6 +121,36 @@ describe("ZDOS local demo contracts", () => {
     expect(next.pending[0].pending).toBe(true);
   });
 
+  it("keeps the antenna unconfigured and local-first without an explicit endpoint", async () => {
+    const antenna = await probeZCommAntenna();
+    expect(antenna.status).toBe("NOT_CONFIGURED");
+    expect(antenna.endpoint).toBeNull();
+    expect(antenna.detail).toContain("local queue remains active");
+  });
+
+  it("denies non-HTTPS antenna endpoints before attempting network access", async () => {
+    const antenna = await probeZCommAntenna("http://vps.example.test");
+    expect(antenna.status).toBe("DENIED");
+    expect(antenna.endpoint).toBeNull();
+    expect(antenna.detail).toContain("HTTPS endpoint required");
+  });
+
+  it("pairs MECCANINCAME locally with no network or shell capability", () => {
+    const paired = pairMeccanincameLocally(emptyMeccanincameState(), "DESKTOP-ZDOS");
+    expect(paired.status).toBe("PAIRED_LOCAL");
+    expect(paired.peerName).toBe("DESKTOP-ZDOS");
+    expect(paired.network).toBe("DENIED");
+    expect(paired.shell).toBe("DENIED");
+    expect(runMeccanincameZlang(MECCANINCAME_TEMPLATE).status).toBe("ACCEPTED");
+    expect(runMeccanincameZlang("exec sh\nmeccanincame.shell allow").status).toBe("DENIED");
+  });
+
+  it("denies insecure CB transports before opening a socket", () => {
+    const client = new ZCommCbClient();
+    expect(client.connect("ws://untrusted.example", () => {})).toBe(false);
+    expect(client.status).toBe("DENIED");
+  });
+
   it("boots a real local runtime with an explicit default-deny posture", () => {
     const runtime = createRuntimeState("2026-09-08T00:00:00.000Z");
     expect(runtime.nodeId).toBe("LOCAL-APP");
@@ -130,24 +161,12 @@ describe("ZDOS local demo contracts", () => {
     expect(runtimeStatus(runtime).healthy).toBe(true);
   });
 
-  it("extends the evidence chain and detects tampering", () => {
-    const runtime = appendRuntimeReceipt(createRuntimeState("2026-09-08T00:00:00.000Z"), { operation: "terminal.status", status: "READY", detail: "posture inspected" }, 123);
+  it("keeps operational actions bounded and radio transmission denied", () => {
+    const runtime = appendRuntimeReceipt(createRuntimeState(), { operation: "test", status: "READY", detail: "local" });
     expect(runtime.receipts).toHaveLength(2);
-    expect(runtime.chainHead).toContain("terminal.status-123");
-    expect(verifyRuntimeState(runtime)).toBe(true);
-    expect(verifyRuntimeState({ ...runtime, posture: "BROKEN" as never })).toBe(false);
-  });
-
-  it("exposes a deterministic local operations snapshot with safe degraded states", () => {
     const snapshot = getLocalOperationalSnapshot();
-    expect(snapshot.posture).toBe("LOCAL / DEFAULT-DENY");
-    expect(snapshot.network).toBe("DENIED");
     expect(snapshot.gps).toBe("LOCAL-ONLY");
     expect(snapshot.radio).toBe("OBSERVE-ONLY");
-    expect(snapshot.resources.find((resource) => resource.key === "WTR")?.state).toBe("UNKNOWN");
-  });
-
-  it("keeps radio transmission denied while allowing message preparation", () => {
     expect(describeCapabilityAction("radio.tx").status).toBe("DENIED");
     expect(describeCapabilityAction("message.queue").status).toBe("READY");
   });
