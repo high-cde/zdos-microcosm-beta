@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { computeZtrace, createReceipt, previewZretro, runTerminalCommand, validateZlang } from "../lib/zdos-demo";
 import { PRIVATE_ZDOS_NODE, nodeBindingState } from "../lib/zdos-node";
+import { describeCapabilityAction, getLocalOperationalSnapshot } from "../lib/zdos-ops";
 import { emptyMeccanincameState, MECCANINCAME_TEMPLATE, pairMeccanincameLocally, runMeccanincameZlang } from "../lib/zdos-meccanincame";
+import { appendRuntimeReceipt, createRuntimeState, runtimeStatus, verifyRuntimeState } from "../lib/zdos-runtime";
 import { runTelecomZlang, telecomZlangTemplate } from "../lib/zdos-telecom";
 import { emptyZCommState, probeZCommAntenna, queueZCommMessage, runZcommZlang, ZCommCbClient } from "../lib/zdos-zcomm";
 
@@ -147,5 +149,25 @@ describe("ZDOS local demo contracts", () => {
     const client = new ZCommCbClient();
     expect(client.connect("ws://untrusted.example", () => {})).toBe(false);
     expect(client.status).toBe("DENIED");
+  });
+
+  it("boots a real local runtime with an explicit default-deny posture", () => {
+    const runtime = createRuntimeState("2026-09-08T00:00:00.000Z");
+    expect(runtime.nodeId).toBe("LOCAL-APP");
+    expect(runtime.transport).toBe("local-only");
+    expect(runtime.remoteExecution).toBe(false);
+    expect(runtime.networkExposure).toBe(false);
+    expect(verifyRuntimeState(runtime)).toBe(true);
+    expect(runtimeStatus(runtime).healthy).toBe(true);
+  });
+
+  it("keeps operational actions bounded and radio transmission denied", () => {
+    const runtime = appendRuntimeReceipt(createRuntimeState(), { operation: "test", status: "READY", detail: "local" });
+    expect(runtime.receipts).toHaveLength(2);
+    const snapshot = getLocalOperationalSnapshot();
+    expect(snapshot.gps).toBe("LOCAL-ONLY");
+    expect(snapshot.radio).toBe("OBSERVE-ONLY");
+    expect(describeCapabilityAction("radio.tx").status).toBe("DENIED");
+    expect(describeCapabilityAction("message.queue").status).toBe("READY");
   });
 });
