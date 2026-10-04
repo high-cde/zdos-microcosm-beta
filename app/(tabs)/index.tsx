@@ -26,7 +26,7 @@ import { loadZCommState, queueZCommMessage, runZcommZlang, syncZCommState, zcomm
 import { appendRuntimeReceipt, createRuntimeState, loadRuntimeState, saveRuntimeState, type ZdosRuntimeState } from "@/lib/zdos-runtime";
 import { getLocalOperationalSnapshot } from "@/lib/zdos-ops";
 
-type Surface = "home" | "terminal" | "zlang" | "zretro" | "telecom" | "monitor" | "evidence" | "security" | "profile";
+type Surface = "home" | "terminal" | "zlang" | "zretro" | "telecom" | "monitor" | "evidence" | "security" | "profile" | "control";
 
 type TerminalEntry = {
   id: string;
@@ -122,6 +122,14 @@ const MENU_CARDS: MenuCard[] = [
     description: "Identità, policy attiva e binding del nodo privato.",
     status: "ROADMAP",
     accent: COLORS.cyan,
+  },
+  {
+    id: "control",
+    index: "09",
+    title: "Control Deck",
+    description: "Impulsi operativi, stato Hybrid, DSN read-only e Agent draft-only.",
+    status: "READY",
+    accent: COLORS.violet,
   },
 ];
 
@@ -651,6 +659,68 @@ function EvidenceSurface({ onBack, receipts }: { onBack: () => void; receipts: R
   );
 }
 
+function ControlSurface({ onBack, onReceipt, onOpenTelecom }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void; onOpenTelecom: () => void }) {
+  const [impulse, setImpulse] = useState<string | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
+
+  const runImpulse = (name: string, detail: string) => {
+    setImpulse(name);
+    onReceipt({ operation: `control.${name.toLowerCase().replaceAll(" ", "-")}`, status: "VERIFIED", detail });
+  };
+
+  const prepareEvolutionDraft = () => {
+    setDraftReady(true);
+    runImpulse("EVOLUTION DRAFT", "Draft locale preparata; pubblicazione social non attiva");
+  };
+
+  return (
+    <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
+      <ScrollView contentContainerStyle={styles.surfaceContent}>
+        <SurfaceHeader title="CONTROL DECK" eyebrow="SURFACE / 09 · OPERATIONS" onBack={onBack} />
+        <View style={styles.controlHero}>
+          <View>
+            <Text style={styles.microLabel}>ZDOS EVOLUTION AGENT</Text>
+            <Text style={styles.controlTitle}>READY / DRAFT-ONLY</Text>
+          </View>
+          <StatusBadge status="READY" />
+        </View>
+        <Text style={styles.sectionIntro}>Un pannello operativo reale ma bounded: i tasti producono receipt locali, mentre rete, social e transazioni restano esplicitamente controllati.</Text>
+
+        <SectionLabel>LIVE POSTURE</SectionLabel>
+        <View style={styles.controlMatrix}>
+          <View style={styles.controlMatrixCell}><Text style={styles.controlMatrixKey}>MICROCOSM</Text><Text style={[styles.controlMatrixValue, { color: COLORS.lime }]}>LOCAL READY</Text><Text style={styles.controlMatrixDetail}>app surface attiva</Text></View>
+          <View style={styles.controlMatrixCell}><Text style={styles.controlMatrixKey}>HYBRID</Text><Text style={[styles.controlMatrixValue, { color: COLORS.amber }]}>BRIDGE PENDING</Text><Text style={styles.controlMatrixDetail}>endpoint non incorporato</Text></View>
+          <View style={styles.controlMatrixCell}><Text style={styles.controlMatrixKey}>DSN / 137</Text><Text style={[styles.controlMatrixValue, { color: COLORS.cyan }]}>READ-ONLY</Text><Text style={styles.controlMatrixDetail}>firma disabilitata</Text></View>
+        </View>
+
+        <SectionLabel>OPERATIONAL IMPULSES</SectionLabel>
+        <View style={styles.controlActionGrid}>
+          <PrimaryButton label="REFRESH LOCAL STATE" onPress={() => runImpulse("REFRESH STATE", "Runtime locale ricaricato") } accent={COLORS.cyan} />
+          <PrimaryButton label="PREPARE EVOLUTION DRAFT" onPress={prepareEvolutionDraft} accent={COLORS.violet} />
+          <PrimaryButton label="OPEN ZCOMM" onPress={onOpenTelecom} accent={COLORS.lime} />
+          <PrimaryButton label="OPEN WEBAPP" onPress={() => void Linking.openURL("https://app.x-zdos.it/e")} accent={COLORS.amber} />
+          <PrimaryButton label="OPEN GITHUB" onPress={() => void Linking.openURL("https://github.com/high-cde/zdos-microcosm-beta")} accent={COLORS.cyan} />
+        </View>
+
+        {impulse ? (
+          <View style={[styles.resultCard, { borderColor: COLORS.lime }]}>
+            <View style={styles.resultTopRow}><Text style={styles.resultTitle}>IMPULSE RECEIPT</Text><StatusBadge status="VERIFIED" /></View>
+            <Text style={styles.resultOutput}>{impulse}</Text>
+            <Text style={styles.resultDetail}>local action completed · audit appended</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.agentDraftCard}>
+          <View style={styles.resultTopRow}><Text style={styles.resultTitle}>AGENT CHANNEL</Text><StatusBadge status={draftReady ? "VERIFIED" : "ROADMAP"} /></View>
+          <Text style={styles.agentDraftTitle}>{draftReady ? "EVOLUTION DRAFT READY" : "DRAFT-ONLY MODE"}</Text>
+          <Text style={styles.agentDraftText}>{draftReady ? "La bozza è pronta per essere revisionata. Nessun social è stato contattato e nessun post è stato pubblicato." : "Planner e social publisher non sono autorizzati a pubblicare. Il primo collegamento richiederà OAuth e approvazione."}</Text>
+        </View>
+        <Text style={styles.disclaimer}>Le etichette HYBRID e DSN riportano lo stato dichiarato dell’app: per lo stato live serve il bridge API server-side. Le credenziali RPC non vengono inserite nell’APK.</Text>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
 function SecuritySurface({ onBack }: { onBack: () => void }) {
   const capabilities = useMemo(
     () => [
@@ -780,6 +850,7 @@ export default function MicrocosmScreen() {
   if (surface === "evidence") return <EvidenceSurface onBack={() => setSurface("home")} receipts={receipts} />;
   if (surface === "security") return <SecuritySurface onBack={() => setSurface("home")} />;
   if (surface === "profile") return <ProfileSurface onBack={() => setSurface("home")} receiptCount={receipts.length} />;
+  if (surface === "control") return <ControlSurface onBack={() => setSurface("home")} onReceipt={addReceipt} onOpenTelecom={() => setSurface("telecom")} />;
 
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
@@ -951,6 +1022,17 @@ const styles = StyleSheet.create({
   capabilityKey: { color: COLORS.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1.2 },
   capabilityValue: { fontSize: 15, fontWeight: "800", marginTop: 5 },
   capabilityDetail: { color: COLORS.muted, fontSize: 11, lineHeight: 17, marginTop: 5 },
+  controlHero: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.violet, padding: 16, marginBottom: 16 },
+  controlTitle: { color: COLORS.violet, fontSize: 21, fontWeight: "900", letterSpacing: 0.7, marginTop: 7 },
+  controlMatrix: { flexDirection: "row", gap: 8, marginBottom: 24 },
+  controlMatrixCell: { flex: 1, minHeight: 96, backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.line, padding: 10 },
+  controlMatrixKey: { color: COLORS.muted, fontSize: 9, fontWeight: "900", letterSpacing: 1.1 },
+  controlMatrixValue: { fontSize: 11, fontWeight: "900", lineHeight: 15, marginTop: 10 },
+  controlMatrixDetail: { color: COLORS.muted, fontSize: 9, lineHeight: 13, marginTop: 5 },
+  controlActionGrid: { gap: 10, marginTop: 12, marginBottom: 18 },
+  agentDraftCard: { backgroundColor: COLORS.panelSoft, borderWidth: 1, borderColor: COLORS.line, padding: 15, marginTop: 14 },
+  agentDraftTitle: { color: COLORS.ink, fontSize: 16, fontWeight: "900", letterSpacing: 0.5, marginTop: 14 },
+  agentDraftText: { color: COLORS.muted, fontSize: 12, lineHeight: 18, marginTop: 8 },
   profileHero: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.cyan, padding: 16, marginBottom: 14 },
   profileId: { color: COLORS.cyan, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 18, fontWeight: "800", marginTop: 9 },
   profileRule: { height: 1, backgroundColor: COLORS.line, marginVertical: 15 },

@@ -8,7 +8,22 @@
 [![Security posture](https://img.shields.io/badge/posture-DEFAULT--DENY-16a34a)](#security-model)
 [![Web3](https://img.shields.io/badge/Web3-read--only%20scaffold-8b5cf6)](#dsn-and-polygon-read-only)
 
-**ZDOS // MICROcosm** è una webapp/mobile app Expo pensata come control plane osservabile per l’ecosistema ZDOS: superfici Zlang bounded, ZComm local-first, receipt verificabili, profili di capability e un percorso Web3 non-custodial per il token **$DSN**.
+**ZDOS // MICROcosm** è una webapp/mobile app Expo pensata come control plane osservabile per l’ecosistema ZDOS: superfici Zlang bounded, ZComm local-first, receipt verificabili, profili di capability, un Control Deck operativo e un percorso Web3 non-custodial per il token **$DSN**.
+
+## Release 1.1.0 — Control Deck
+
+La release aggiunge una superficie operativa raggiungibile dalla home con pulsanti reali e receipt locali:
+
+- refresh dello stato locale;
+- preparazione di un evolution draft senza pubblicazione;
+- apertura diretta di ZComm;
+- apertura della webapp `app.x-zdos.it/e`;
+- apertura del repository GitHub;
+- matrice Microcosm / Hybrid / DSN con stato esplicito;
+- modalità Agent `DRAFT-ONLY`;
+- DSN Polygon read-only e transazioni disabilitate.
+
+Il Control Deck non finge uno stato live: il bridge verso `zdos-hybrid` resta `BRIDGE PENDING` finché non viene configurata un’API server-side autenticata.
 
 Non è una shell general-purpose, non custodisce chiavi private e non presenta integrazioni blockchain non verificate come se fossero operative. Ogni capacità è dichiarata, limitata e osservabile.
 
