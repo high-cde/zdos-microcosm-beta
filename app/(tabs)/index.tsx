@@ -25,8 +25,9 @@ import { PRIVATE_ZDOS_NODE, nodeBindingState } from "@/lib/zdos-node";
 import { loadZCommState, queueZCommMessage, runZcommZlang, syncZCommState, zcommZlangTemplate, type ZCommState } from "@/lib/zdos-zcomm";
 import { appendRuntimeReceipt, createRuntimeState, loadRuntimeState, saveRuntimeState, type ZdosRuntimeState } from "@/lib/zdos-runtime";
 import { getLocalOperationalSnapshot } from "@/lib/zdos-ops";
+import { runSipLabScenario, type SipLabMethod, type SipLabResult } from "@/lib/sip-lab";
 
-type Surface = "home" | "terminal" | "zlang" | "zretro" | "telecom" | "monitor" | "evidence" | "security" | "profile";
+type Surface = "home" | "terminal" | "zlang" | "zretro" | "telecom" | "monitor" | "evidence" | "security" | "profile" | "siplab";
 
 type TerminalEntry = {
   id: string;
@@ -122,6 +123,14 @@ const MENU_CARDS: MenuCard[] = [
     description: "Identità, policy attiva e binding del nodo privato.",
     status: "ROADMAP",
     accent: COLORS.cyan,
+  },
+  {
+    id: "siplab",
+    index: "10",
+    title: "SIP Protocol Lab",
+    description: "Prova richieste e risposte SIP d'esempio in un ambiente solo locale.",
+    status: "READY",
+    accent: COLORS.violet,
   },
 ];
 
@@ -623,6 +632,74 @@ function ZretroSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (
   );
 }
 
+function SipLabSurface({ onBack, onReceipt }: { onBack: () => void; onReceipt: (receipt: Omit<Receipt, "id">) => void }) {
+  const [method, setMethod] = useState<SipLabMethod>("REGISTER");
+  const [username, setUsername] = useState("alice");
+  const [domain, setDomain] = useState("example.invalid");
+  const [result, setResult] = useState<SipLabResult | null>(null);
+  const [invalidInput, setInvalidInput] = useState(false);
+
+  const runScenario = () => {
+    const next = runSipLabScenario(method, username, domain);
+    setResult(next);
+    setInvalidInput(!next);
+    onReceipt({
+      operation: `sip.lab.${method.toLowerCase()}`,
+      status: next ? "ACCEPTED" : "DENIED",
+      detail: next ? next.detail : "invalid SIP lab identity · no network operation attempted",
+    });
+  };
+
+  return (
+    <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
+      <ScrollView contentContainerStyle={styles.surfaceContent} keyboardShouldPersistTaps="handled">
+        <SurfaceHeader title="SIP PROTOCOL LAB" eyebrow="SURFACE / 10 · LOCAL SANDBOX" onBack={onBack} />
+        <View style={[styles.sipLabHero, { borderColor: COLORS.violet }]}>
+          <View style={styles.resultHeaderRow}><Text style={styles.resultEyebrow}>SESSION INITIATION PROTOCOL</Text><StatusBadge status="READY" /></View>
+          <Text style={styles.sipLabTitle}>MESSAGE FLOW TESTER</Text>
+          <Text style={styles.monitorDescription}>Genera messaggi SIP di esempio e osserva risposte simulate. Dominio e identità sono fittizi; il motore gira in memoria sul dispositivo.</Text>
+        </View>
+
+        <Text style={styles.inputLabel}>METODO</Text>
+        <View style={styles.sipLabMethods}>
+          {(["REGISTER", "OPTIONS", "INVITE", "BYE"] as const).map((candidate) => (
+            <Pressable key={candidate} accessibilityRole="button" accessibilityState={{ selected: method === candidate }} onPress={() => { setMethod(candidate); setResult(null); }} style={[styles.sipLabMethod, method === candidate && styles.sipLabMethodSelected]}>
+              <Text style={[styles.sipLabMethodText, method === candidate && styles.sipLabMethodTextSelected]}>{candidate}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.inputLabel}>UTENTE DI ESEMPIO</Text>
+        <TextInput accessibilityLabel="Utente SIP fittizio" value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} style={styles.sipLabInput} placeholder="alice" placeholderTextColor="#5D737C" />
+        <Text style={styles.inputLabel}>DOMINIO DI ESEMPIO</Text>
+        <TextInput accessibilityLabel="Dominio SIP fittizio" value={domain} onChangeText={setDomain} autoCapitalize="none" autoCorrect={false} style={styles.sipLabInput} placeholder="example.invalid" placeholderTextColor="#5D737C" />
+        <PrimaryButton label="GENERA SCAMBIO SIP LOCALE" onPress={runScenario} accent={COLORS.violet} />
+
+        {invalidInput ? <Text accessibilityRole="alert" style={styles.sipLabError}>Identità non valida. Usa caratteri semplici per il nome utente e un dominio senza spazi o parametri.</Text> : null}
+        {result ? (
+          <>
+            <View style={styles.sipLabMessageCard}>
+              <View style={styles.resultTopRow}><Text style={styles.resultTitle}>REQUEST · {result.method}</Text><StatusBadge status="ACCEPTED" /></View>
+              <Text selectable style={styles.sipLabMessage}>{result.request}</Text>
+            </View>
+            <Text style={styles.inputLabel}>RISPOSTE DI SCENARIO · NON RICEVUTE DALLA RETE</Text>
+            {result.responses.map((response, index) => (
+              <View key={`${result.method}-${index}`} style={styles.sipLabMessageCard}>
+                <Text style={styles.resultTitle}>RESPONSE {String(index + 1).padStart(2, "0")}</Text>
+                <Text selectable style={styles.sipLabMessage}>{response}</Text>
+              </View>
+            ))}
+          </>
+        ) : null}
+
+        <View style={styles.sipLabWarning}>
+          <Text style={styles.microLabel}>NO REAL SIP TRANSPORT</Text>
+          <Text style={styles.sipLabWarningText}>Nessun pacchetto viene inviato: non avvengono registrazioni a un proxy, chiamate audio o sessioni RTP; non si accede al microfono né si usano credenziali. INVITE, SDP e risposte sono fixture didattiche, non una chiamata o un test di raggiungibilità. Il dominio example.invalid è riservato agli esempi.</Text>
+        </View>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
 function EvidenceSurface({ onBack, receipts }: { onBack: () => void; receipts: Receipt[] }) {
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
@@ -780,6 +857,7 @@ export default function MicrocosmScreen() {
   if (surface === "evidence") return <EvidenceSurface onBack={() => setSurface("home")} receipts={receipts} />;
   if (surface === "security") return <SecuritySurface onBack={() => setSurface("home")} />;
   if (surface === "profile") return <ProfileSurface onBack={() => setSurface("home")} receiptCount={receipts.length} />;
+  if (surface === "siplab") return <SipLabSurface onBack={() => setSurface("home")} onReceipt={addReceipt} />;
 
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]} containerClassName="bg-background">
@@ -976,6 +1054,19 @@ const styles = StyleSheet.create({
   boundaryText: { color: COLORS.ink, fontSize: 13, lineHeight: 20, marginTop: 10 },
   boundaryRule: { height: 1, backgroundColor: COLORS.line, marginVertical: 14 },
   boundaryFoot: { color: COLORS.amber, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 10 },
+  sipLabHero: { backgroundColor: COLORS.panel, borderWidth: 1, padding: 16, marginBottom: 22 },
+  sipLabTitle: { color: COLORS.violet, fontSize: 24, fontWeight: "800", letterSpacing: 0.4, marginTop: 9 },
+  sipLabMethods: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 18 },
+  sipLabMethod: { borderWidth: 1, borderColor: COLORS.line, paddingHorizontal: 12, paddingVertical: 10 },
+  sipLabMethodSelected: { borderColor: COLORS.violet, backgroundColor: "#211A32" },
+  sipLabMethodText: { color: COLORS.muted, fontSize: 10, fontWeight: "800", letterSpacing: 0.8 },
+  sipLabMethodTextSelected: { color: COLORS.violet },
+  sipLabInput: { minHeight: 48, backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 13, paddingHorizontal: 13, marginTop: 7, marginBottom: 17 },
+  sipLabMessageCard: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.line, padding: 13, marginBottom: 12 },
+  sipLabMessage: { color: COLORS.ink, fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 11, lineHeight: 18, marginTop: 10 },
+  sipLabWarning: { backgroundColor: COLORS.panelSoft, borderLeftWidth: 2, borderLeftColor: COLORS.amber, padding: 14, marginTop: 8 },
+  sipLabWarningText: { color: COLORS.muted, fontSize: 12, lineHeight: 18, marginTop: 9 },
+  sipLabError: { color: COLORS.red, fontSize: 12, lineHeight: 18, marginBottom: 15 },
   telecomFlex: { flex: 1 },
   telecomHero: { backgroundColor: COLORS.panel, borderWidth: 1, borderColor: COLORS.cyan, padding: 16, marginBottom: 22 },
   monitorHero: { backgroundColor: COLORS.panel, borderWidth: 1, padding: 16, marginBottom: 14 },

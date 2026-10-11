@@ -15,8 +15,8 @@
 | Session | LOCAL |
 | Network | DENIED by default; HTTPS sync optional |
 | Storage | LOCAL PERSISTENT QUEUE |
-| Superfici nel catalogo documentato | 10 (00–09) |
-| Superfici implementate nel codice | 07, inclusa ZComm Videotel |
+| Superfici nel catalogo documentato | 11 (00–10) |
+| Superfici implementate nel codice | 08, incluse ZComm Videotel e SIP Protocol Lab |
 | Session receipts | Locali e receipt-linked |
 | Esecuzione remota | Non configurata |
 | Shell general-purpose | Non disponibile |
@@ -39,10 +39,17 @@ La schermata principale presenta un catalogo di superfici locali. Ogni superfici
 | **07 — Node Pulse** | READY | Mostra un heartbeat pubblico read-only del nodo First Node core-01. |
 | **08 — Zchain Zliang** | ROADMAP | Prevede la lettura blockchain read-only con profilo Orbot opzionale. |
 | **09 — ZComm Videotel** | EXPERIMENTAL | Messaggeria 40×24 local-first in Zlang, con coda offline e sync HTTPS allowlisted. |
+| **10 — SIP Protocol Lab** | READY · locale | Genera richieste SIP di esempio (`REGISTER`, `OPTIONS`, `INVITE`, `BYE`) e fixture di risposta senza inviare pacchetti. |
 
 ![ZDOS Microcosm — surfaces](docs/screenshots/microcosm-surfaces.jpg)
 
 ## Contratti locali della beta
+
+### SIP Protocol Lab
+
+SIP Lab è un banco di prova locale per il protocollo SIP: compone messaggi d'esempio con identità fittizie, mostra sequenze di risposte simulate e registra l'esecuzione nella Evidence Chain di sessione. Il generatore e le risposte funzionano interamente in memoria; non aprono socket e non contattano proxy SIP.
+
+Non è ancora un client VoIP: non effettua registrazioni o chiamate, non crea sessioni RTP, non usa il microfono e non richiede credenziali. Per passare a chiamate reali serviranno una fase separata, un endpoint SIP e un'implementazione di trasporto/media con permessi Android espliciti.
 
 La logica dimostrativa è concentrata in `lib/zdos-demo.ts` e definisce un insieme ridotto di contratti deterministici.
 
