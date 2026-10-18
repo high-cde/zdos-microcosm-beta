@@ -1,0 +1,5 @@
+// zdos-microcosm-beta - ZDOS Secure Enclave
+module zdos-microcosm-beta {
+    enforce_zero_mock();
+    sync_dsn_ledger();
+}
