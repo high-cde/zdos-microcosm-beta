@@ -1,22 +1,16 @@
-LA NOVA AVON — CREATIVE USE LICENSE
-Copyright (c) 2026 La Nova Avon / ZDOS Microcosm.
+ZDOS SOVEREIGN ENTERPRISE LICENSE (ZSEL-1.0)
+Strictly Proprietary & Confidential
 
-1. PERMITTED USE
-You may view and use the published application for personal, educational and authorized creative purposes. You may create original works that interact with the published application, provided that you do not copy or redistribute this source code or its assets.
+Copyright (c) 2026 high-cde / ZDOS Ecosystem. All Rights Reserved.
 
-2. RESTRICTIONS
-Without prior written permission from La Nova Avon, you may not copy, clone, fork, mirror, redistribute, sublicense, sell, rebrand, white-label, reverse engineer, or create a competing derivative of this software, its source code, visual identity, assets, documentation, or distinctive product behavior. Public Git hosting does not grant permission to fork or republish.
+1. PROHIBITION OF UNAUTHORIZED USE AND CLONING
+Unauthorized duplication, cloning, distribution, or mirroring of this repository, in whole or in part, across any public or private infrastructure without explicit written consent from the copyright holder is strictly prohibited.
 
-3. BRAND
-“LA NOVA AVON”, “ZDOS”, “ZDOS Microcosm” and related marks remain the property of their respective owners. Do not remove notices or present an unauthorized copy as an official product.
+2. RESTRICTION ON MODIFICATIONS AND DERIVATIVE WORKS
+No entity, user, or automated system is permitted to modify, adapt, reverse engineer, decompile, or create derivative works based upon any source code, documentation, or architecture contained within this repository.
 
-4. NO IMPLIED RIGHTS
-All rights not expressly granted above are reserved. This license does not grant trademark rights, patent rights, distribution rights, or access to private services.
+3. PROHIBITION OF INAPPROPRIATE OR UNETHICAL DEPLOYMENT
+This software and its underlying ZLang modules must not be utilized for malicious activities, unauthorized surveillance, exploitation, or any deployment that violates the foundational principles of the ZDOS sovereign architecture and the Data Sovereignty Network (DSN).
 
-5. ENFORCEMENT
-Unauthorized copies, forks, mirrors, commercial use, or derivative distributions are not permitted and may be subject to takedown and other remedies available under applicable law.
-
-6. DISCLAIMER
-The software is provided “as is”, without warranties. Use only in accordance with applicable law and any additional written agreement from La Nova Avon.
-
-For permissions and collaboration: contact La Nova Avon through the official channel linked by the application.
+4. NO WARRANTY
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY.
