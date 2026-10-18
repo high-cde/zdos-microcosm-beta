@@ -1,13 +1,19 @@
-# 🚀 ZDOS-MICROCOSM-BETA // ZDOS Sovereign Ecosystem
+# 🚀 ZDOS Sovereign Ecosystem
 
-Componente ufficiale e nativo dell'ecosistema **ZDOS** e **ZLang**, progettato per l'esecuzione bare-metal, la tracciabilità immutabile e la gestione autonoma tramite intelligenza sinaptica.
+![ZDOS Version](https://img.shields.io/badge/ZDOS-Kernel_Sovereign_v4.2-blue?style=for-the-badge&logo=linux)
+![ZLang Native](https://img.shields.io/badge/Language-ZLang_100%25-orange?style=for-the-badge&logo=codeforces)
+![DSN Security](https://img.shields.io/badge/DSN-Immutable_Ledger-success?style=for-the-badge&logo=shield)
+![Status](https://img.shields.io/badge/Status-Zero_Mock_|_Zero_Legacy-critical?style=for-the-badge&logo=fire)
 
 ---
 
-### ✨ Specifiche Architetturali
-* **Natura del Modulo:** Interamente sviluppato per il kernel ZDOS, privo di dipendenze legacy o riferimenti esterni.
-* **Integrazione DSN & ZLang:** Connessione diretta ai registri immutabili e ai contratti intelligenti sovrani.
-* **Sicurezza & Conformità:** Gestione delle risorse basata su standard crittografici avanzati.
+## 🌐 Panoramica Architetturale
+Componente ufficiale, nativo e autonomo dell'ecosistema **ZDOS**. Progettato per operare in ambienti bare-metal e cloud distribuiti, questo modulo elimina completamente qualsiasi dipendenza da librerie di terze parti o simulazioni legacy, adottando un approccio strict-sovereign basato su **ZLang** e la Data Sovereignty Network (**DSN**).
+
+### ✨ Specifiche Tecniche
+* **Esecuzione Bare-Metal:** Ottimizzato per la massima efficienza delle risorse hardware.
+* **Integrazione DSN:** Sincronizzazione crittografica con i registri immutabili.
+* **Zero Legacy Policy:** Assenza totale di mock, framework esterni o componenti non verificati.
 
 ---
 *Distribuito sotto licenza sovrana ZDOS. Tutti i diritti riservati.*
